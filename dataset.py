@@ -21,8 +21,8 @@ print(board)
 
 input_length = 92
 fen_lengths = []
-positions = np.array([])
-evaluations = np.array([])
+positions = []
+evaluations = []
 with open("data/chessData.csv") as file:
     file.readline()
     line_number = 1
@@ -37,13 +37,14 @@ with open("data/chessData.csv") as file:
             print(chess.Board(position_eval[0]))
             print("CentiPawn Score:", position_eval[1])
             print("Normalized Evaluation:", normalized_evaluation)
-            np.append(positions, np.asarray([i.split(" ") for i in str(chess.Board(position_eval[0])).split("\n")]))
-            np.append(evaluations, normalized_evaluation)
+            positions.append(np.asarray([i.split(" ") for i in str(chess.Board(position_eval[0])).split("\n")]))
+            evaluations.append(normalized_evaluation)
             line_number += 1
         except Exception as e:
             print(e)
             print("Problem with line:", line_number)
+        if line_number == 10000:
+            break
 # tf.keras.models.Sequential([tf.keras.layers.Conv2D(64, input_shape=input_length)])
-
-np.save("evaluations.npz", evaluations)
-np.save("positions.npz", positions)
+np.save("evaluations", np.asarray(evaluations))
+np.save("positions", np.asarray(positions))
