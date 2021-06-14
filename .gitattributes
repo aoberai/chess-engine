@@ -1,1 +1,1 @@
-chessData.csv filter=lfs diff=lfs merge=lfs -text
+data/chessData.csv filter=lfs diff=lfs merge=lfs -text
