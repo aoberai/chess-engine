@@ -15,19 +15,21 @@ output_dense = tf.keras.layers.Dense(units=output_nodes)(dropout)
 model = tf.keras.Model(inputs=[input_position, input_color], outputs=output_dense)
 model.summary()
 
-# model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
-# evaluations = np.load('evaluations.npy')
-# positions = np.load('positions.npy')
-# np.random.seed(0)
-# np.random.shuffle(evaluations)
-# np.random.seed(0)
-# np.random.shuffle(positions)
-# for i in range(0, len(evaluations)):
-#     print(positions[i])
-#     print("Evaluation", evaluations[i])
-# # model.fit(x=positions, y=evaluations, epochs=8, validation_split = 0.2)
-#
-#
-#
+model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
+evaluations = np.load('evaluations.npy')
+positions = np.load('positions.npy')
+colors = np.load('colors.npy')
+np.random.seed(0)
+np.random.shuffle(evaluations)
+np.random.seed(0)
+np.random.shuffle(positions)
+for i in range(0, len(evaluations)):
+    print(positions[i])
+    print("Evaluation", evaluations[i])
+    print("Color", "White" if colors[i] == 1 else "Black")
+model.fit(x=[positions, colors], y=evaluations, epochs=8, validation_split = 0.2)
+
+
+
 
 

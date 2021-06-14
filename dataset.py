@@ -23,6 +23,7 @@ input_length = 92
 fen_lengths = []
 positions = []
 evaluations = []
+colors = []
 with open("data/chessData.csv") as file:
     file.readline()
     line_number = 1
@@ -32,13 +33,19 @@ with open("data/chessData.csv") as file:
             #numpy position_eval[1] = float(position_eval[1].replace("\n", ""))
             normalized_evaluation = 1 if "#" in position_eval[1] else 2 * (1 / (1 + math.exp(-float(position_eval[1])/300)) - 0.5) # normalizes centipawn score with sigmoid function
             position_eval[0] = position_eval[0] + (input_length - len(position_eval[0])) * " " # Add padding on FEN
+            color = 1 if 'w' == position_eval[0].split()[1] else 0 # 1 if white, 0 if black to move
+
             print(line_number)
             print(position_eval)
-            print(chess.Board(position_eval[0]))
+            print(chess.Board(position_eval[0]).unicode())
             print("CentiPawn Score:", position_eval[1])
             print("Normalized Evaluation:", normalized_evaluation)
+            print("Color:", color)
+
             positions.append(np.asarray([i.split(" ") for i in str(chess.Board(position_eval[0])).split("\n")]))
             evaluations.append(normalized_evaluation)
+            colors.append(color)
+
             line_number += 1
         except Exception as e:
             print(e)
@@ -48,3 +55,4 @@ with open("data/chessData.csv") as file:
 # tf.keras.models.Sequential([tf.keras.layers.Conv2D(64, input_shape=input_length)])
 np.save("evaluations", np.asarray(evaluations))
 np.save("positions", np.asarray(positions))
+np.save("colors", np.asarray(colors))
