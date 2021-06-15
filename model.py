@@ -1,10 +1,31 @@
 import numpy as np
 import tensorflow as tf
 
-input_shape = (8, 8, 1) # Board Dimensions are 8 x 8
+
+piece_char_2_int = {
+        'p' : (1,0,0,0,0,0,0,0,0,0,0,0),
+        'P' : (0,0,0,0,0,0,1,0,0,0,0,0),
+        'n' : (0,1,0,0,0,0,0,0,0,0,0,0),
+        'N' : (0,0,0,0,0,0,0,1,0,0,0,0),
+        'b' : (0,0,1,0,0,0,0,0,0,0,0,0),
+        'B' : (0,0,0,0,0,0,0,0,1,0,0,0),
+        'r' : (0,0,0,1,0,0,0,0,0,0,0,0),
+        'R' : (0,0,0,0,0,0,0,0,0,1,0,0),
+        'q' : (0,0,0,0,1,0,0,0,0,0,0,0),
+        'Q' : (0,0,0,0,0,0,0,0,0,0,1,0),
+        'k' : (0,0,0,0,0,1,0,0,0,0,0,0),
+        'K' : (0,0,0,0,0,0,0,0,0,0,0,1),
+        '.' : (0,0,0,0,0,0,0,0,0,0,0,0),
+}
+
+
+int_2_piece_char = {v: k for k, v in piece_char_2_int.items()}
+
+
+input_shape = (8, 8, 12) # Board Dimensions are 8 x 8
 output_nodes = 1 # output is singular number from -1 to 1 evaluating position
 
-input_position = tf.keras.Input(shape=(8, 8, 1))
+input_position = tf.keras.Input(shape=input_shape)
 input_position_conv = tf.keras.layers.Conv2D(16, (3, 3), padding="same")(input_position)
 input_position_conv2 = tf.keras.layers.Conv2D(16, (3, 3), padding="same")(input_position_conv)
 input_position_conv3 = tf.keras.layers.Conv2D(32, (3, 3), strides=2)(input_position_conv2)
@@ -27,21 +48,26 @@ model = tf.keras.Model(inputs=[input_position, input_color], outputs=output_dens
 model.summary()
 tf.keras.utils.plot_model(model, to_file="model.png", show_shapes=True)
 model.compile(optimizer='Adam', loss='mean_squared_error', metrics=['accuracy', 'MSE'])
-evaluations = np.load('evaluations_200.npy')
-positions = np.load('positions_200.npy')
-colors = np.load('colors_200.npy')
+evaluations = np.load('evaluations_167k.npy')
+positions = np.load('positions_167k.npy')
+colors = np.load('colors_167k.npy')
+
 np.random.seed(0)
 np.random.shuffle(evaluations)
 np.random.seed(0)
 np.random.shuffle(positions)
-# for i in range(0, len(evaluations)):
-#     print(positions[i])
-#     print("Evaluation", evaluations[i])
-#     print("Color", "White" if colors[i] == 1 else "Black")
-print(len(evaluations))
-print(evaluations[1])
-print(positions[1])
-print(colors[1])
+
+# Checks that all positions and evaluations are correctly associated after scrambling - successful 
+print(evaluations[np.argmax(evaluations)])
+for i in range(0, len(positions[np.argmax(evaluations)])):
+    for j in range(0, len(positions[np.argmax(evaluations)][i])):
+        print(" ", int_2_piece_char[tuple(positions[np.argmax(evaluations)][i][j].tolist())], end = ' ')
+    print("\n")
+
+
+print("White" if colors[np.argmax(evaluations)] == 1 else "Black")
+
+
 model.fit(x=[positions, colors], y=evaluations, epochs=150, validation_split=0.2)
 
 
