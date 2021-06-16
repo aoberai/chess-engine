@@ -1,3 +1,5 @@
+
+import time
 import chess
 import chess.svg
 from flask import Flask, Markup, render_template
@@ -26,24 +28,48 @@ app = Flask(__name__)
 def home():
     board_svg = to_svg(board)
     ret = '<html><head>'
-    # ret += '<style>input { font-size: 30px; } button { font-size: 30px; }</style>'
+    ret += '<style>input { font-size: 30px; } button { font-size: 30px; }</style>'
     ret += '</head><body>'
     ret += '<img width=1000 height=1000 src="data:image/svg+xml;base64,%s"></img><br/>' % board_svg
-    # ret += '<form action="/move"><input name="move" type="text"></input><input type="submit" value="Move"></form><br/>'
+    ret += '<form action="/move"><input name="move" type="text"></input><input type="submit" value="Move"></form><br/>'
     return ret
 
 
-# @app.route("/selfplay")
-# def selfplay():
-    # ret = '<html><head>'
-    # self play
-#     while not s.board.is_game_over():
-#         computer_move(s, v)
-#         ret += '<img width=600 height=600 src="data:image/svg+xml;base64,%s"></img><br/>' % to_svg(s)
-#         print(s.board.result())
+@app.route("/selfplay")
+def selfplay():
+    ret = '<html><head>'
+    ret += '<img width=600 height=600 src="data:image/svg+xml;base64,%s"></img><br/>' % to_svg(board)
+    return ret
 #
-#         return ret
-# #
+# app.run(debug=True)
+
+# move given in algebraic notation
+@app.route("/move")
+def move():
+    board.push_san("e5")
+    response = app.response_class(
+        response=board.fen(),
+        status=200
+    )
+    # return response
+    return home()
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # @app.route('/')
 # def home():
 #     board_list = board.unicode().replace("\n", "<br>")
@@ -64,6 +90,5 @@ def home():
 #     # table.border = True
 #     return render_template('index.html', board=board_list)
 # # return render_template('index.html', chess_table=table)
-app.run()
 
 
