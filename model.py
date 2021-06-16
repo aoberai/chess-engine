@@ -112,6 +112,10 @@ tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram
 model.fit(x=[positions, colors], y=evaluations, epochs=150, validation_split=0.2, callbacks=[tensorboard_callback])
 
 
+if input("Do you want to save model? y for yes, n for no?\n") == 'y':
+    model.save("chess_engine_%s.h5" % input("Enter Model Name: "))
+
+
 
 
 
