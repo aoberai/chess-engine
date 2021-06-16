@@ -4,3 +4,13 @@ Objective: Create neural network which can evaluate a position from -1 to 1. Whi
 Current Model Architecture:
 
 ![Model](./model.png)
+
+TODO:
+
+Fix model not train
+
+Incremental dumping to npy
+
+Create GUI
+
+http://www.diva-portal.se/smash/get/diva2:1366229/FULLTEXT01.pdf

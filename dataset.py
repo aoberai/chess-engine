@@ -58,7 +58,7 @@ with open("data/chessData.csv") as file:
             colors.append(color)
 
             line_number += 1
-            if line_number == 12000000:
+            if line_number == 2000000:
                 break
     except:
         print("\n\nStopping data conversion")

@@ -88,14 +88,18 @@ model = tf.keras.Model(inputs=[input_position, input_color], outputs=output_dens
 model.summary()
 tf.keras.utils.plot_model(model, to_file="model.png", show_shapes=True)
 model.compile(optimizer='Adam', loss='mean_squared_error', metrics=['MSE'])
-evaluations = np.load('evaluations_167k.npy')
-positions = np.load('positions_167k.npy')
-colors = np.load('colors_167k.npy')
+evaluations = np.load('evaluations_1M.npy')
+positions = np.load('positions_1M.npy')
+colors = np.load('colors_1M.npy')
 
 np.random.seed(0)
 np.random.shuffle(evaluations)
 np.random.seed(0)
 np.random.shuffle(positions)
+
+
+assert len(evaluations) == len(positions) and len(positions) == len(colors)
+
 
 # Checks that all positions and evaluations are correctly associated after scrambling - successful 
 print(evaluations[np.argmax(evaluations)])
@@ -109,7 +113,7 @@ print("White" if colors[np.argmax(evaluations)] == 1 else "Black")
 log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
-model.fit(x=[positions, colors], y=evaluations, epochs=150, validation_split=0.2, callbacks=[tensorboard_callback])
+model.fit(x=[positions, colors], y=evaluations, epochs=35, validation_split=0.2, callbacks=[tensorboard_callback])
 
 
 if input("Do you want to save model? y for yes, n for no?\n") == 'y':
