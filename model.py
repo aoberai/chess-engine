@@ -90,10 +90,10 @@ evaluations = np.load('evaluations_W750K.npy')
 positions = np.load('positions_W750K.npy')
 # colors = np.load('colors_W750K.npy')
 
-np.random.seed(0)
-np.random.shuffle(evaluations)
-np.random.seed(0)
-np.random.shuffle(positions)
+# np.random.seed(0)
+# np.random.shuffle(evaluations)
+# np.random.seed(0)
+# np.random.shuffle(positions)
 
 
 assert len(evaluations) == len(positions)
@@ -110,7 +110,7 @@ for i in range(0, len(positions[np.argmax(evaluations)])):
 log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
-model.fit(x=positions, y=evaluations, epochs=4, validation_split=0.2, batch_size = 64, callbacks=[tensorboard_callback])
+model.fit(x=positions, y=evaluations, epochs=4, validation_split=0.2, batch_size = 64, shuffle=True, callbacks=[tensorboard_callback])
 
 
 if input("Do you want to save model? y for yes, n for no?\n") == 'y':
