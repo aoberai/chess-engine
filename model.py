@@ -84,7 +84,7 @@ output_dense = tf.keras.layers.Dense(units=output_nodes, activation='tanh')(seco
 model = tf.keras.Model(inputs=input_position, outputs=output_dense)
 
 model.summary()
-tf.keras.utils.plot_model(model, to_file="model.png", show_shapes=True)
+tf.keras.utils.plot_model(model, to_file="assets/model.png", show_shapes=True)
 model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4), loss='mean_squared_error', metrics=['MSE'])
 evaluations = np.load('evaluations_W750K.npy')
 positions = np.load('positions_W750K.npy')

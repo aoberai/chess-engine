@@ -1,9 +1,13 @@
 # Chess Engine - In Progress
 Objective: Create neural network which can evaluate a position from -1 to 1. Whichever legal move that maximizes the evaluation score is the move the chess engine should play.  
 
-Current Model Architecture:
+## UI
 
-![Model](./model.png)
+![UI](./assets/UI.png)
+
+## Current Model Architecture:
+
+![Model](./assets/model.png)
 
 TODO:
 

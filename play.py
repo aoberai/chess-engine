@@ -3,6 +3,10 @@ import copy
 import chess
 import tensorflow as tf
 import time
+import chess.svg
+from flask import Flask, Markup, render_template, request
+import base64
+import threading
 
 board = chess.Board()
 
@@ -22,10 +26,31 @@ piece_char_2_int = {
        '.' : [0,0,0,0,0,0,0,0,0,0,0,0],
 }
 
+app = Flask(__name__)
+@app.route("/")
+def update_site():
+    board_svg = base64.b64encode(chess.svg.board(board).encode('utf-8')).decode('utf-8')
+    ret = '<html><head>'
+    ret += '<style>input { font-size: 30px; } button { font-size: 30px; }</style>'
+    ret += '</head><body>'
+    ret += '<img width=800 height=800 src="data:image/svg+xml;base64,%s"></img><br/>' % board_svg
+    ret += '<form action="/move"><input name="Move" type="text"></input><input type="submit"   value="Move"></form><br/>'
+    return ret 
+
+@app.route("/move")
+def update_board():
+    input_move = request.args.get("Move")
+    legal_moves = [board.san(move) for move in list(board.legal_moves)]
+    if legal_moves.count(input_move) == 0:
+        return update_site()
+    board.push_san(input_move)
+    time.sleep(1)
+    computer_move()
+    return update_site()
 
 model = tf.keras.models.load_model("chess_engine_LowestLR.h5")
 
-while True:
+def computer_move():
     max_evaluation_score = -1
     max_evaluation_score_move = ""
     legal_moves = [board.san(move) for move in list(board.legal_moves)]
@@ -46,20 +71,13 @@ while True:
             max_evaluation_score_move = alg_move
             max_evaluation_score = evaluation_score
 
-    time.sleep(1)
+    # time.sleep(1)
 
     board.push_san(max_evaluation_score_move)
     print("Eval scores list: " + str(move_eval_scores)) 
     print("\nComputer making move: %s with evaluation score %0.3f\n" % (max_evaluation_score_move, max_evaluation_score))
-    print(board.unicode())
 
-    legal_moves = [board.san(move) for move in list(board.legal_moves)]
-    print("Playing as %s " % str("White" if board.turn else "Black"))
-    print("Legal Moves: %s" % str(legal_moves))
-    wanted_player_move = input("Enter your move: " )
-    while legal_moves.count(wanted_player_move) == 0:
-        wanted_player_move = input("\nUnavailable move or incorrect algebraic chess notation. Please try entering correct legal move \n [%s]: " % str(legal_moves))
-    board.push_san(wanted_player_move)
-    print(board.unicode())
-    time.sleep(1)
+if __name__ == "__main__":
+    computer_move()
+    app.run()
 
