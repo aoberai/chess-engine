@@ -62,38 +62,42 @@ output_nodes = 1 # output is singular number from -1 to 1 evaluating position
 # # dropout = tf.keras.layers.Dropout(0.2)(second_hidden_dense)
 # output_dense = tf.keras.layers.Dense(units=output_nodes, activation='tanh')(second_hidden_dense)
 # model = tf.keras.Model(inputs=[inputs, input_color], outputs=output_dense)
-#
+
+strategy = tf.distribute.MirroredStrategy()
+print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
+
 ''' Custom Model '''
-input_position = tf.keras.Input(shape=input_shape)
-input_position_conv = tf.keras.layers.Conv2D(16, (3, 3), padding="same", activation='relu')(input_position)
-input_position_conv2 = tf.keras.layers.Conv2D(16, (3, 3), padding="same", activation='relu')(input_position_conv)
-input_position_conv3 = tf.keras.layers.Conv2D(32, (3, 3), strides=2, activation='relu')(input_position_conv2)
-input_position_conv4 = tf.keras.layers.Conv2D(32, (3, 3), padding="same", activation='relu')(input_position_conv3)
-input_position_conv5 = tf.keras.layers.Conv2D(64, (3, 3), padding="same", activation='sigmoid')(input_position_conv4)
-input_position_conv6 = tf.keras.layers.Conv2D(128, (1, 1), activation='sigmoid')(input_position_conv5)
-input_position_conv7 = tf.keras.layers.Conv2D(128, (1, 1), activation='sigmoid')(input_position_conv6)
+with strategy.scope():
+    input_position = tf.keras.Input(shape=input_shape)
+    input_position_conv = tf.keras.layers.Conv2D(16, (3, 3), padding="same", activation='relu')(input_position)
+    input_position_conv2 = tf.keras.layers.Conv2D(16, (3, 3), padding="same", activation='relu')(input_position_conv)
+    input_position_conv3 = tf.keras.layers.Conv2D(32, (3, 3), strides=2, activation='relu')(input_position_conv2)
+    input_position_conv4 = tf.keras.layers.Conv2D(32, (3, 3), padding="same", activation='relu')(input_position_conv3)
+    input_position_conv5 = tf.keras.layers.Conv2D(64, (3, 3), padding="same", activation='sigmoid')(input_position_conv4)
+    input_position_conv6 = tf.keras.layers.Conv2D(128, (1, 1), activation='sigmoid')(input_position_conv5)
+    input_position_conv7 = tf.keras.layers.Conv2D(128, (1, 1), activation='sigmoid')(input_position_conv6)
 
-flattened_input_position = tf.keras.layers.Flatten()(input_position_conv7)
+    flattened_input_position = tf.keras.layers.Flatten()(input_position_conv7)
 
-# first_conv = tf.keras.layers.Conv2D(64, (3, 3), input_shape=input_shape)(combined_input)
-# flatten = tf.keras.layers.Flatten(input_shape=input_shape)(first_conv)
-# first_dense = tf.keras.layers.Dense(units=128, activation='relu')(combined_input)
-second_hidden_dense = tf.keras.layers.Dense(units=16, activation='tanh')(flattened_input_position)
-# dropout = tf.keras.layers.Dropout(0.2)(second_hidden_dense)
-output_dense = tf.keras.layers.Dense(units=output_nodes, activation='tanh')(second_hidden_dense)
-model = tf.keras.Model(inputs=input_position, outputs=output_dense)
+    # first_conv = tf.keras.layers.Conv2D(64, (3, 3), input_shape=input_shape)(combined_input)
+    # flatten = tf.keras.layers.Flatten(input_shape=input_shape)(first_conv)
+    # first_dense = tf.keras.layers.Dense(units=128, activation='relu')(combined_input)
+    second_hidden_dense = tf.keras.layers.Dense(units=16, activation='tanh')(flattened_input_position)
+    # dropout = tf.keras.layers.Dropout(0.2)(second_hidden_dense)
+    output_dense = tf.keras.layers.Dense(units=output_nodes, activation='tanh')(second_hidden_dense)
+    model = tf.keras.Model(inputs=input_position, outputs=output_dense)
 
-model.summary()
-tf.keras.utils.plot_model(model, to_file="assets/model.png", show_shapes=True)
-model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4), loss='mean_squared_error', metrics=['MSE'])
-evaluations = np.load('evaluations_W750K.npy')
-positions = np.load('positions_W750K.npy')
+    model.summary()
+    tf.keras.utils.plot_model(model, to_file="assets/model.png", show_shapes=True)
+    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-2), loss='mean_squared_error', metrics=['MSE'])
+evaluations = np.load('evaluations_5M.npy')
+positions = np.load('positions_5M.npy')
 # colors = np.load('colors_W750K.npy')
 
-# np.random.seed(0)
-# np.random.shuffle(evaluations)
-# np.random.seed(0)
-# np.random.shuffle(positions)
+np.random.seed(0)
+np.random.shuffle(evaluations)
+np.random.seed(0)
+np.random.shuffle(positions)
 
 
 assert len(evaluations) == len(positions)
@@ -110,13 +114,21 @@ assert len(evaluations) == len(positions)
 log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
-model.fit(x=positions, y=evaluations, epochs=35, validation_split=0.2, batch_size = 64, shuffle=True, callbacks=[tensorboard_callback])
+
+train_data = tf.data.Dataset.from_tensor_slices((positions[0:int(len(positions) * 0.9)], evaluations[0:int(len(positions) * 0.9)]))
+val_data = tf.data.Dataset.from_tensor_slices((positions[int(len(positions) * 0.9):len(positions)-1], evaluations[int(len(positions) * 0.9):len(positions)-1]))
+train_data = train_data.batch(32)
+val_data = val_data.batch(32)
+
+early_stopping_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', restore_best_weights=True, patience=3)
+
+# Disable AutoShard.
+options = tf.data.Options()
+options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.OFF
+train_data = train_data.with_options(options)
+
+model.fit(train_data, validation_data=val_data, epochs=35, shuffle=True, callbacks=[early_stopping_callback, tensorboard_callback])
 
 
-if input("Do you want to save model? y for yes, n for no?\n") == 'y':
-    model.save("chess_engine_%s.h5" % input("Enter Model Name: "))
-
-
-
-
+model.save("chess_engine_v3.h5")
 
