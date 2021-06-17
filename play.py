@@ -54,7 +54,7 @@ def update_board():
     computer_move()
     return update_site()
 
-model = tf.keras.models.load_model("chess_engine_LowestLR.h5")
+model = tf.keras.models.load_model("chess_engine_v2.h5")
 
 def computer_move():
     if not board.is_checkmate():
