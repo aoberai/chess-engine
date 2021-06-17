@@ -124,8 +124,9 @@ early_stopping_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', r
 
 # Disable AutoShard.
 options = tf.data.Options()
-options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.OFF
+options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
 train_data = train_data.with_options(options)
+val_data = val_data.with_options(options)
 
 model.fit(train_data, validation_data=val_data, epochs=35, shuffle=True, callbacks=[early_stopping_callback, tensorboard_callback])
 
