@@ -65,20 +65,20 @@ output_nodes = 1 # output is singular number from -1 to 1 evaluating position
 #
 ''' Custom Model '''
 input_position = tf.keras.Input(shape=input_shape)
-input_position_conv = tf.keras.layers.Conv2D(16, (3, 3), padding="same")(input_position)
-input_position_conv2 = tf.keras.layers.Conv2D(16, (3, 3), padding="same")(input_position_conv)
-input_position_conv3 = tf.keras.layers.Conv2D(32, (3, 3), strides=2)(input_position_conv2)
-input_position_conv4 = tf.keras.layers.Conv2D(32, (3, 3), padding="same")(input_position_conv3)
-input_position_conv5 = tf.keras.layers.Conv2D(64, (3, 3), padding="same")(input_position_conv4)
-input_position_conv6 = tf.keras.layers.Conv2D(128, (1, 1))(input_position_conv5)
-input_position_conv7 = tf.keras.layers.Conv2D(128, (1, 1))(input_position_conv6)
+input_position_conv = tf.keras.layers.Conv2D(16, (3, 3), padding="same", activation='relu')(input_position)
+input_position_conv2 = tf.keras.layers.Conv2D(16, (3, 3), padding="same", activation='relu')(input_position_conv)
+input_position_conv3 = tf.keras.layers.Conv2D(32, (3, 3), strides=2, activation='relu')(input_position_conv2)
+input_position_conv4 = tf.keras.layers.Conv2D(32, (3, 3), padding="same", activation='relu')(input_position_conv3)
+input_position_conv5 = tf.keras.layers.Conv2D(64, (3, 3), padding="same", activation='sigmoid')(input_position_conv4)
+input_position_conv6 = tf.keras.layers.Conv2D(128, (1, 1), activation='sigmoid')(input_position_conv5)
+input_position_conv7 = tf.keras.layers.Conv2D(128, (1, 1), activation='sigmoid')(input_position_conv6)
 
 flattened_input_position = tf.keras.layers.Flatten()(input_position_conv7)
 
 # first_conv = tf.keras.layers.Conv2D(64, (3, 3), input_shape=input_shape)(combined_input)
 # flatten = tf.keras.layers.Flatten(input_shape=input_shape)(first_conv)
 # first_dense = tf.keras.layers.Dense(units=128, activation='relu')(combined_input)
-second_hidden_dense = tf.keras.layers.Dense(units=16, activation='relu')(flattened_input_position)
+second_hidden_dense = tf.keras.layers.Dense(units=16, activation='tanh')(flattened_input_position)
 # dropout = tf.keras.layers.Dropout(0.2)(second_hidden_dense)
 output_dense = tf.keras.layers.Dense(units=output_nodes, activation='tanh')(second_hidden_dense)
 model = tf.keras.Model(inputs=input_position, outputs=output_dense)
@@ -100,17 +100,17 @@ assert len(evaluations) == len(positions)
 
 
 # Checks that all positions and evaluations are correctly associated after scrambling - successful 
-print(evaluations[np.argmax(evaluations)])
-for i in range(0, len(positions[np.argmax(evaluations)])):
-    for j in range(0, len(positions[np.argmax(evaluations)][i])):
-        print(" ", int_2_piece_char[tuple(positions[np.argmax(evaluations)][i][j].tolist())], end = ' ')
-    print("\n")
-
+# print(evaluations[np.argmax(evaluations)])
+# for i in range(0, len(positions[np.argmax(evaluations)])):
+#     for j in range(0, len(positions[np.argmax(evaluations)][i])):
+#         print(" ", int_2_piece_char[tuple(positions[np.argmax(evaluations)][i][j].tolist())], end = ' ')
+#     print("\n")
+#
 
 log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
-model.fit(x=positions, y=evaluations, epochs=4, validation_split=0.2, batch_size = 64, shuffle=True, callbacks=[tensorboard_callback])
+model.fit(x=positions, y=evaluations, epochs=35, validation_split=0.2, batch_size = 64, shuffle=True, callbacks=[tensorboard_callback])
 
 
 if input("Do you want to save model? y for yes, n for no?\n") == 'y':
