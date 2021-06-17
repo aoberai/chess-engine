@@ -34,23 +34,22 @@ def update_site():
     ret += '<style>input { font-size: 30px; } button { font-size: 30px; }</style>'
     ret += '</head><body>'
     ret += '<img width=750 height=750 src="data:image/svg+xml;base64,%s"></img><br/>' % board_svg
-    ret += '<form action="/move"><input name="Move" type="text"></input><input type="submit"   value="Move"></form><br/>'
+    if board.is_checkmate():
+        ret += '<br> <big><big><big><big><big>CheckMate!</big></big></big></big></big>'
+    ret += '<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><form action="/move"><input name="Move" type="text"></input><input type="submit"   value="Move"></form><br/>'
     # TODO: Put in evaluation
 
     ret += '<br> <big><big><big>Position Evaluation for White: %0.4f</big></big></big>' % model.predict(serialize_position(board))
-    if board.is_checkmate():
-        ret += '<br> <big><big><big><big><big>CheckMate!</big></big></big></big></big>'
     return ret
 
 @app.route("/move")
 def update_board():
     input_move = request.args.get("Move")
     legal_moves = [board.san(move).lower() for move in list(board.legal_moves)]
-    print("Legal Moves: " + str(legal_moves))
+    print("Legal Moves: " + str([board.san(move) for move in list(board.legal_moves)]))
     if legal_moves.count(input_move.lower()) == 0:
         return update_site()
     board.push_san(input_move)
-    # time.sleep(1)
     computer_move()
     return update_site()
 
@@ -73,7 +72,7 @@ def computer_move():
                 max_evaluation_score_move = alg_move
                 max_evaluation_score = evaluation_score
 
-        time.sleep(0.5)
+        time.sleep(0.25)
 
         board.push_san(max_evaluation_score_move)
         # print("Eval scores list: " + str(move_eval_scores)) 
