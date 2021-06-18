@@ -29,14 +29,14 @@ piece_char_2_int = {
 app = Flask(__name__)
 @app.route("/")
 def update_site():
-    board_svg = base64.b64encode(chess.svg.board(board).encode('utf-8')).decode('utf-8')
+    board_svg = base64.b64encode(chess.svg.board(board, flipped=True).encode('utf-8')).decode('utf-8')
     ret = '<html><head>'
     ret += '<style>input { font-size: 30px; } button { font-size: 30px; }</style>'
     ret += '</head><body>'
     ret += '<img width=750 height=750 src="data:image/svg+xml;base64,%s"></img><br/>' % board_svg
     if board.is_checkmate():
         ret += '<br> <big><big><big><big><big>CheckMate!</big></big></big></big></big>'
-    ret += '<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><form action="/move"><input name="Move" type="text"></input><input type="submit"   value="Move"></form><br/>'
+    ret += '<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><form action="/move"><input name="Move" type="text" autofocus="autofocus"></input><input type="submit"   value="Move"></form><br/>'
     # TODO: Put in evaluation
 
     ret += '<br> <big><big><big>Position Evaluation for White: %0.4f</big></big></big>' % model.predict(serialize_position(board))
@@ -53,7 +53,7 @@ def update_board():
     computer_move()
     return update_site()
 
-model = tf.keras.models.load_model("chess_engine_v3.h5")
+model = tf.keras.models.load_model("chess_engine_v2.h5")
 
 def computer_move():
     if not board.is_checkmate():
