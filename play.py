@@ -80,6 +80,23 @@ def computer_move():
     else:
         print("\n\n\n Checkmate! \n\n\n")
 
+
+def position_evaluation(fen):
+    board_copy = chess.Board(fen)
+    one_hot_board = serialize_position(board_copy)
+    evaluation_score = model.predict(one_hot_board)[0][0]
+    return evaluation_score
+
+def minimax(fen, depth=2):
+    # establish search tree
+    if depth == 0:
+        return fen
+    legal_moves = [board.san(move) for move in list(board.legal_moves)]
+    for move in legal_moves:
+        minimax(chess.board(fen).push_san(move).fen(), depth - 1)
+
+
+
 def serialize_position(board):
     letter_position = np.asarray([i.split(" ") for i in str(board).split("\n")]) # gives position using [r, R, k, K, b, B, q, Q, k, K, p, P, .] notation
     one_hot_board = np.zeros((8, 8, 12))
