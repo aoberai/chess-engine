@@ -1,28 +1,69 @@
 import numpy as np
 import math
 import chess
+import tensorflow as tf
+
+model = tf.keras.models.load_model("chess_engine_v2.h5")
+
+piece_char_2_int = {
+       'p' : [1,0,0,0,0,0,0,0,0,0,0,0],
+       'P' : [0,0,0,0,0,0,1,0,0,0,0,0],
+       'n' : [0,1,0,0,0,0,0,0,0,0,0,0],
+       'N' : [0,0,0,0,0,0,0,1,0,0,0,0],
+       'b' : [0,0,1,0,0,0,0,0,0,0,0,0],
+       'B' : [0,0,0,0,0,0,0,0,1,0,0,0],
+       'r' : [0,0,0,1,0,0,0,0,0,0,0,0],
+       'R' : [0,0,0,0,0,0,0,0,0,1,0,0],
+       'q' : [0,0,0,0,1,0,0,0,0,0,0,0],
+       'Q' : [0,0,0,0,0,0,0,0,0,0,1,0],
+       'k' : [0,0,0,0,0,1,0,0,0,0,0,0],
+       'K' : [0,0,0,0,0,0,0,0,0,0,0,1],
+       '.' : [0,0,0,0,0,0,0,0,0,0,0,0],
+}
 
 
-# def position_evaluation(fen):
-#     board_copy = chess.Board(fen)
-#     one_hot_board = serialize_position(board_copy)
-#     evaluation_score = model.predict(one_hot_board)[0][0]
-#     return evaluation_score
+def position_evaluation(fen):
+    board_copy = chess.Board(fen)
+    one_hot_board = serialize_position(board_copy)
+    evaluation_score = model.predict(one_hot_board)[0][0]
+    return evaluation_score
 
 #recursive search of all available moves from given point
-def minimax(fen, depth=1): # depth represents ply
+
+def minimax(fen, depth, maximizing_player_color=chess.WHITE): # depth represents ply
     # Establish Search Tree
 
     board = chess.Board(fen)
+    if depth == 0 or board.is_checkmate() or board.is_draw():
+        return float(position_evaluation(fen))
 
-    if depth == 0:
-        print(board.unicode())
-        return fen
-    legal_moves = [board.san(move) for move in list(board.legal_moves)]
-    for move in legal_moves:
-        next_board = chess.Board(fen)
-        next_board.push_san(move)
-        minimax(next_board.fen(), depth - 1)
+    if board.turn == maximizing_player_color:
+        max_evaluation = -100000
+        legal_moves = [board.san(move) for move in list(board.legal_moves)]
+        for move in legal_moves:
+            next_board = chess.Board(fen)
+            next_board.push_san(move)
+            evaluation = minimax(next_board.fen(), depth - 1, next_board.turn)
+            max_evaluation = max(max_evaluation, evaluation)
+        return max_evaluation
+
+    else:
+        min_evaluation = 100000
+        legal_moves = [board.san(move) for move in list(board.legal_moves)]
+        for move in legal_moves:
+            next_board = chess.Board(fen)
+            next_board.push_san(move)
+            evaluation = minimax(next_board.fen(), depth - 1, next_board.turn)
+            min_evaluation = min(min_evaluation, evaluation)
+        return min_evaluation
+
+def serialize_position(board):
+    letter_position = np.asarray([i.split(" ") for i in str(board).split("\n")]) # gives position using [r, R, k, K, b, B, q, Q, k, K, p, P, .] notation
+    one_hot_board = np.zeros((8, 8, 12))
+    for i in range(0, len(letter_position)):
+        for j in range(0, len(letter_position[i])):
+            one_hot_board[i][j] = piece_char_2_int[letter_position[i][j]]
+    return np.expand_dims(one_hot_board,0)
 
 
 

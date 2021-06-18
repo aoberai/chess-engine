@@ -65,15 +65,14 @@ def computer_move():
         for alg_move in legal_moves:
             board_copy = chess.Board(board.fen())
             board_copy.push_san(alg_move)
-            one_hot_board = serialize_position(board_copy)
-            evaluation_score = model.predict(one_hot_board)[0][0]
+            evaluation_score = minimax(board_copy.fen(), depth=3)
+
             move_eval_scores[alg_move] = evaluation_score
             if evaluation_score >= max_evaluation_score:
                 max_evaluation_score_move = alg_move
                 max_evaluation_score = evaluation_score
-
+        print(move_eval_scores)
         time.sleep(0.25)
-
         board.push_san(max_evaluation_score_move)
         # print("Eval scores list: " + str(move_eval_scores)) 
         # print("\nComputer making move: %s with evaluation score %0.3f\n" % (max_evaluation_score_move, max_evaluation_score))
@@ -81,19 +80,11 @@ def computer_move():
         print("\n\n\n Checkmate! \n\n\n")
 
 
-def position_evaluation(fen):
+def position_evaluation(fen, color=chess.WHITE): # TODO: Might need to make this color dependent for minimax?
     board_copy = chess.Board(fen)
     one_hot_board = serialize_position(board_copy)
     evaluation_score = model.predict(one_hot_board)[0][0]
     return evaluation_score
-
-def minimax(fen, depth=2):
-    # establish search tree
-    if depth == 0:
-        return fen
-    legal_moves = [board.san(move) for move in list(board.legal_moves)]
-    for move in legal_moves:
-        minimax(chess.board(fen).push_san(move).fen(), depth - 1)
 
 
 
@@ -104,6 +95,23 @@ def serialize_position(board):
         for j in range(0, len(letter_position[i])):
             one_hot_board[i][j] = piece_char_2_int[letter_position[i][j]]
     return np.expand_dims(one_hot_board,0)
+
+def minimax(fen, depth, maximizing_player_color=chess.WHITE): # depth represents ply
+    # Establish Search Tree
+    board = chess.Board(fen)
+    if depth == 0 or board.is_game_over(claim_draw=True):
+        return float(position_evaluation(fen)) # TODO: make this work for both black and white
+
+    threshold_evaluation = -1 if board.turn == maximizing_player_color else 1 # used as a threshold to find max eval if search node on maximizing_player_color or min eval for oppositve player if search node not on maximizing_player_color
+    legal_moves = [board.san(move) for move in list(board.legal_moves)]
+    for move in legal_moves:
+        next_board = chess.Board(fen)
+        next_board.push_san(move)
+        print("Checking: " + move)
+        evaluation = minimax(next_board.fen(), depth - 1, next_board.turn)
+        maxmin_evaluation = max(threshold_evaluation, evaluation) if board.turn == maximizing_player_color else min(threshold_evaluation, evaluation)
+        return maxmin_evaluation
+
 
 if __name__ == "__main__":
     computer_move()
