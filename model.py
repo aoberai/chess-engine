@@ -2,7 +2,6 @@ import datetime
 import numpy as np
 import tensorflow as tf
 
-
 piece_char_2_int = {
         'p' : (1,0,0,0,0,0,0,0,0,0,0,0),
         'P' : (0,0,0,0,0,0,1,0,0,0,0,0),
@@ -87,8 +86,8 @@ with strategy.scope():
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4), loss='mean_squared_error', metrics=['MSE'])
 
 # memmap the file
-evaluations_train_memmap = np.load('evaluations_1.5M.npy', mmap_mode='r')
-positions_train_memmap = np.load('positions_1.5M.npy', mmap_mode='r')
+evaluations_train_memmap = np.load('evaluations_2.25M.npy', mmap_mode='r')
+positions_train_memmap = np.load('positions_2.25M.npy', mmap_mode='r')
 
 evaluations_val_memmap = np.load('evaluations_val100K.npy', mmap_mode='r')
 positions_val_memmap = np.load('positions_val100K.npy', mmap_mode='r')
@@ -128,8 +127,8 @@ val_dataset = tf.data.Dataset.from_generator(
 log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
-train_dataset = train_dataset.batch(32)
-val_dataset = val_dataset.batch(32)
+train_dataset = train_dataset.batch(64)
+val_dataset = val_dataset.batch(64)
 
 early_stopping_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', restore_best_weights=True, patience=6)
 
@@ -139,7 +138,7 @@ options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoSha
 train_dataset = train_dataset.with_options(options)
 val_dataset = val_dataset.with_options(options)
 
-model.fit(train_dataset, validation_data=val_dataset, epochs=35, shuffle=True, callbacks=[early_stopping_callback, tensorboard_callback])
+model.fit(train_dataset, validation_data=val_dataset, epochs=100, shuffle=True, callbacks=[early_stopping_callback, tensorboard_callback], use_multiprocessing=True, workers=8)
 
 
 model.save("chess_engine_v6.h5")
