@@ -77,60 +77,70 @@ with strategy.scope():
     input_position_conv5 = tf.keras.layers.Conv2D(64, (3, 3), padding="same", activation='sigmoid')(input_position_conv4)
     input_position_conv6 = tf.keras.layers.Conv2D(128, (1, 1), activation='sigmoid')(input_position_conv5)
     input_position_conv7 = tf.keras.layers.Conv2D(128, (1, 1), activation='sigmoid')(input_position_conv6)
-
     flattened_input_position = tf.keras.layers.Flatten()(input_position_conv7)
-
-    # first_conv = tf.keras.layers.Conv2D(64, (3, 3), input_shape=input_shape)(combined_input)
-    # flatten = tf.keras.layers.Flatten(input_shape=input_shape)(first_conv)
-    # first_dense = tf.keras.layers.Dense(units=128, activation='relu')(combined_input)
     second_hidden_dense = tf.keras.layers.Dense(units=16, activation='tanh')(flattened_input_position)
-    # dropout = tf.keras.layers.Dropout(0.2)(second_hidden_dense)
     output_dense = tf.keras.layers.Dense(units=output_nodes, activation='tanh')(second_hidden_dense)
     model = tf.keras.Model(inputs=input_position, outputs=output_dense)
 
     model.summary()
     tf.keras.utils.plot_model(model, to_file="assets/model.png", show_shapes=True)
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4), loss='mean_squared_error', metrics=['MSE'])
-evaluations = np.load('evaluations_1.5M.npy')
-positions = np.load('positions_1.5M.npy')
-# colors = np.load('colors_W750K.npy')
 
-np.random.seed(0)
-np.random.shuffle(evaluations)
-np.random.seed(0)
-np.random.shuffle(positions)
+# memmap the file
+evaluations_train_memmap = np.load('evaluations_1.5M.npy', mmap_mode='r')
+positions_train_memmap = np.load('positions_1.5M.npy', mmap_mode='r')
+
+evaluations_val_memmap = np.load('evaluations_val100K.npy', mmap_mode='r')
+positions_val_memmap = np.load('positions_val100K.npy', mmap_mode='r')
+
+def training_data_generator():
+    for i in range(0, len(positions_train_memmap)):
+        yield (positions_train_memmap[i], evaluations_train_memmap[i])
+        # return (iter(positions_train_memmap), iter(evaluations_train_memmap))
+
+def validation_data_generator():
+    for i in range(0, len(positions_val_memmap)):
+        yield (positions_val_memmap[i], evaluations_val_memmap[i])
+        # return (iter(positions_val_memmap), iter(evaluations_val_memmap))
 
 
-assert len(evaluations) == len(positions)
+''' Shows generator working '''
+# print("Running generator")
+# generator = training_data_generator()
+# count = 0
+# while True:
+#     try:
+#         print(next(generator))
+#         count+=1
+#         print(count)
+#     except Exception as e:
+#         print(e)
+#         break
+# print(count)
 
 
-# Checks that all positions and evaluations are correctly associated after scrambling - successful 
-# print(evaluations[np.argmax(evaluations)])
-# for i in range(0, len(positions[np.argmax(evaluations)])):
-#     for j in range(0, len(positions[np.argmax(evaluations)][i])):
-#         print(" ", int_2_piece_char[tuple(positions[np.argmax(evaluations)][i][j].tolist())], end = ' ')
-#     print("\n")
-#
+train_dataset = tf.data.Dataset.from_generator(
+        generator=training_data_generator, output_signature=(tf.TensorSpec(shape=input_shape, dtype=np.int32), tf.TensorSpec(shape=(), dtype=np.float32)))
+
+val_dataset = tf.data.Dataset.from_generator(
+        generator=validation_data_generator, output_signature=(tf.TensorSpec(shape=input_shape, dtype=np.int32), tf.TensorSpec(shape=(), dtype=np.float32)))
 
 log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
+train_dataset = train_dataset.batch(32)
+val_dataset = val_dataset.batch(32)
 
-train_data = tf.data.Dataset.from_tensor_slices((positions[0:int(len(positions) * 0.9)], evaluations[0:int(len(positions) * 0.9)]))
-val_data = tf.data.Dataset.from_tensor_slices((positions[int(len(positions) * 0.9):len(positions)-1], evaluations[int(len(positions) * 0.9):len(positions)-1]))
-train_data = train_data.batch(32)
-val_data = val_data.batch(32)
-
-early_stopping_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', restore_best_weights=True, patience=3)
+early_stopping_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', restore_best_weights=True, patience=6)
 
 # Disable AutoShard.
 options = tf.data.Options()
 options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
-train_data = train_data.with_options(options)
-val_data = val_data.with_options(options)
+train_dataset = train_dataset.with_options(options)
+val_dataset = val_dataset.with_options(options)
 
-model.fit(train_data, validation_data=val_data, epochs=35, shuffle=True, callbacks=[early_stopping_callback, tensorboard_callback])
+model.fit(train_dataset, validation_data=val_dataset, epochs=35, shuffle=True, callbacks=[early_stopping_callback, tensorboard_callback])
 
 
-model.save("chess_engine_v3.h5")
+model.save("chess_engine_v6.h5")
 

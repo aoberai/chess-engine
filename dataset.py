@@ -26,7 +26,8 @@ fen_lengths = []
 positions = []
 evaluations = []
 # colors = []
-with open("data/chessData.csv") as file:
+# with open("data/chessData.csv") as file:
+with open("data/random_evals.csv") as file:
     try:
         file.readline()
         line_number = 1
@@ -56,7 +57,7 @@ with open("data/chessData.csv") as file:
                 # colors.append(color)
 
                 line_number += 1
-                if line_number == 2*750000:
+                if line_number == 100000:
                     break
     except:
         print("\n\nStopping data conversion")

@@ -17,6 +17,4 @@ Improve NN architecture
 
 Incremental dumping to npy
 
-Generator read from numpy dataset
-
 http://www.diva-portal.se/smash/get/diva2:1366229/FULLTEXT01.pdf
