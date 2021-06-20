@@ -70,28 +70,32 @@ print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
 
 with strategy.scope():
     input_position = tf.keras.Input(shape=input_shape)
-    input_position_conv = tf.keras.layers.Conv2D(16, (3, 3), padding="same", activation='relu')(input_position)
-    input_position_conv2 = tf.keras.layers.Conv2D(16, (3, 3), padding="same", activation='relu')(input_position_conv)
-    input_position_conv3 = tf.keras.layers.Conv2D(32, (3, 3), strides=2, activation='relu')(input_position_conv2)
-    input_position_conv4 = tf.keras.layers.Conv2D(32, (3, 3), padding="same", activation='relu')(input_position_conv3)
-    input_position_conv5 = tf.keras.layers.Conv2D(64, (3, 3), padding="same", activation='sigmoid')(input_position_conv4)
-    input_position_conv6 = tf.keras.layers.Conv2D(128, (1, 1), activation='sigmoid')(input_position_conv5)
-    input_position_conv7 = tf.keras.layers.Conv2D(128, (1, 1), activation='sigmoid')(input_position_conv6)
-    flattened_input_position = tf.keras.layers.Flatten()(input_position_conv7)
-    second_hidden_dense = tf.keras.layers.Dense(units=16, activation='tanh')(flattened_input_position)
+    input_position_conv = tf.keras.layers.Conv2D(16, (7, 7), padding="same", activation='relu')(input_position)
+    input_position_conv2 = tf.keras.layers.Conv2D(16, (7, 7), padding="same", activation='relu')(input_position_conv)
+    input_position_conv3 = tf.keras.layers.Conv2D(16, (5, 5), padding="same", activation='relu')(input_position_conv2)
+    input_position_conv4 = tf.keras.layers.Conv2D(16, (5, 5), padding="same", activation='relu')(input_position_conv3)
+    input_position_conv5 = tf.keras.layers.Conv2D(32, (3, 3), strides=2, activation='sigmoid')(input_position_conv4)
+    input_position_conv6 = tf.keras.layers.Conv2D(32, (3, 3), padding="same", activation='sigmoid')(input_position_conv5)
+    input_position_conv7 = tf.keras.layers.Conv2D(64, (3, 3), padding="same", activation='sigmoid')(input_position_conv6)
+    input_position_conv8 = tf.keras.layers.Conv2D(128, (3, 3), padding="same", activation='relu')(input_position_conv7)
+    input_position_conv9 = tf.keras.layers.Conv2D(512, (3, 3), padding="same", activation='relu')(input_position_conv8)
+    input_position_conv_final = tf.keras.layers.Conv2D(512, (3, 3), activation='relu')(input_position_conv9)
+    # input_position_conv8 = tf.keras.layers.Conv2D(512, (1, 1), activation='sigmoid')(input_position_conv7)
+    flattened_input_position = tf.keras.layers.Flatten()(input_position_conv_final)
+    second_hidden_dense = tf.keras.layers.Dense(units=32, activation='relu')(flattened_input_position)
     output_dense = tf.keras.layers.Dense(units=output_nodes, activation='tanh')(second_hidden_dense)
     model = tf.keras.Model(inputs=input_position, outputs=output_dense)
 
     model.summary()
     tf.keras.utils.plot_model(model, to_file="assets/model.png", show_shapes=True)
-    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4), loss='mean_squared_error', metrics=['MSE'])
+    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=3e-4), loss='mean_squared_error', metrics=['MSE'])
 
 # memmap the file
 evaluations_train_memmap = np.load('evaluations_2.25M.npy', mmap_mode='r')
 positions_train_memmap = np.load('positions_2.25M.npy', mmap_mode='r')
 
-evaluations_val_memmap = np.load('evaluations_val100K.npy', mmap_mode='r')
-positions_val_memmap = np.load('positions_val100K.npy', mmap_mode='r')
+# evaluations_val_memmap = np.load('evaluations_val100K.npy', mmap_mode='r')
+# positions_val_memmap = np.load('positions_val100K.npy', mmap_mode='r')
 
 
 training_data_seen_indexes = []
@@ -100,11 +104,11 @@ def training_data_generator():
         yield (positions_train_memmap[i], evaluations_train_memmap[i])
         # return (iter(positions_train_memmap), iter(evaluations_train_memmap))
 
-def validation_data_generator():
-    for i in range(0, len(positions_val_memmap)):
-        yield (positions_val_memmap[i], evaluations_val_memmap[i])
-        # return (iter(positions_val_memmap), iter(evaluations_val_memmap))
-
+# def validation_data_generator():
+#     for i in range(0, len(positions_val_memmap)):
+#         yield (positions_val_memmap[i], evaluations_val_memmap[i])
+#         # return (iter(positions_val_memmap), iter(evaluations_val_memmap))
+#
 
 ''' Shows generator working '''
 # print("Running generator")
@@ -121,17 +125,21 @@ def validation_data_generator():
 # print(count)
 
 
-train_dataset = tf.data.Dataset.from_generator(
+total_dataset = tf.data.Dataset.from_generator(
         generator=training_data_generator, output_signature=(tf.TensorSpec(shape=input_shape, dtype=np.int32), tf.TensorSpec(shape=(), dtype=np.float32)))
 
-val_dataset = tf.data.Dataset.from_generator(
-        generator=validation_data_generator, output_signature=(tf.TensorSpec(shape=input_shape, dtype=np.int32), tf.TensorSpec(shape=(), dtype=np.float32)))
+# val_dataset = tf.data.Dataset.from_generator(
+        # generator=validation_data_generator, output_signature=(tf.TensorSpec(shape=input_shape, dtype=np.int32), tf.TensorSpec(shape=(), dtype=np.float32)))
 
 log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
-train_dataset = train_dataset.shuffle(1750000).batch(64)
-val_dataset = val_dataset.shuffle(100000).batch(64)
+total_dataset = total_dataset.shuffle(2000000)
+
+val_dataset = total_dataset.take(5000).batch(64).prefetch(64)
+train_dataset = total_dataset.skip(5000).batch(64).prefetch(64)
+
+# val_dataset = val_dataset.shuffle(100000).batch(64).prefetch(64)
 
 early_stopping_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', restore_best_weights=True, patience=6)
 

@@ -26,12 +26,12 @@ fen_lengths = []
 positions = []
 evaluations = []
 # colors = []
-# with open("data/chessData.csv") as file:
-with open("data/random_evals.csv") as file:
+with open("data/chessData.csv") as file:
+# with open("data/random_evals.csv") as file:
     try:
         file.readline()
         line_number = 1
-        for line in file.readlines():
+        for line in (file.readlines()):
             position_eval = line.split(",")
             if 'w' == position_eval[0].split()[1]:
                 #numpy position_eval[1] = float(position_eval[1].replace("\n", ""))

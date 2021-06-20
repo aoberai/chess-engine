@@ -26,7 +26,7 @@ piece_char_2_int = {
        '.' : [0,0,0,0,0,0,0,0,0,0,0,0],
 }
 
-selfplay = True
+selfplay = False 
 
 app = Flask(__name__)
 @app.route("/")
@@ -68,11 +68,18 @@ def update_board():
             move_eval_scores[alg_move] = one_ply_evaluation_score
 
         sorted_move_eval_scores = sorted(move_eval_scores.items(), key=lambda x: x[1])
-        print("Move Recommendations")
+        print("1-PLY Move Recommendations")
         print(sorted_move_eval_scores)
     else:
-        computer_move(turn=board.turn)
-
+        legal_moves = [board.san(move).lower() for move in list(board.legal_moves)]
+        print("Legal Moves: " + str([board.san(move) for move in list(board.legal_moves)]))
+        input_move = request.args.get("Move")
+        if input_move == '':
+            computer_move(turn=board.turn)
+        else:
+            if legal_moves.count(input_move.lower()) == 0:
+                return update_site()
+            board.push_san(input_move)
     return update_site()
 
 @app.route("/undo")
