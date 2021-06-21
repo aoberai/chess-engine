@@ -92,7 +92,7 @@ def undo_move():
 
 
 
-model = tf.keras.models.load_model("chess_engine_v3.h5")
+model = tf.keras.models.load_model("chess_engine_v40.8MSE24Epch.h5")
 
 def computer_move(turn=chess.WHITE):
     if not board.is_checkmate():

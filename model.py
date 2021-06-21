@@ -48,8 +48,7 @@ output_nodes = 1 # output is singular number from -1 to 1 evaluating position
 strategy = tf.distribute.MirroredStrategy()
 print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
 
-# Supposed to speed up training by doing "Mixed Precision Training"
-policy = tf.keras.mixed_precision.experimental.Policy('mixed_float16')
+policy = tf.keras.mixed_precision.Policy('mixed_float16')
 tf.keras.mixed_precision.experimental.set_policy(policy)
 
 ''' Custom Model '''
