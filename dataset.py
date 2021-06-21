@@ -1,3 +1,4 @@
+import random
 import chess
 import chess.svg
 import numpy as np
@@ -23,44 +24,41 @@ piece_char_2_int = {
 
 input_length = 92
 fen_lengths = []
-positions = []
-evaluations = []
+wanted_dataset_size = 3000000
+positions = np.zeros((wanted_dataset_size, 8, 8, 12))
+evaluations = np.zeros(wanted_dataset_size)
 # colors = []
-with open("data/chessData.csv") as file:
-# with open("data/random_evals.csv") as file:
-    try:
-        file.readline()
-        line_number = 1
-        for line in (file.readlines()):
-            position_eval = line.split(",")
-            if 'w' == position_eval[0].split()[1]:
-                #numpy position_eval[1] = float(position_eval[1].replace("\n", ""))
-                normalized_evaluation = 1 if "#" in position_eval[1] else 2 * (1 / (1 + math.exp(-float(position_eval[1])/300)) - 0.5) # normalizes centipawn score with sigmoid function
-                position_eval[0] = position_eval[0] + (input_length - len(position_eval[0])) * " " # Add padding on FEN
-                position_array = np.asarray([i.split(" ") for i in str(chess.Board(position_eval[0])).split("\n")])
-                position_array_int = np.zeros((8, 8, 12))
-                for i in range(0, len(position_array)):
-                    for j in range(0, len(position_array[i])):
-                        position_array_int[i][j] = piece_char_2_int[position_array[i][j]]
+with open("data/chessData.csv") as file1, open("data/random_evals.csv") as file2:
+    file1.readline(); file2.readline()
+    combined_raw_dataset = file1.readlines() + file2.readlines()
+    random.shuffle(combined_raw_dataset)
+    line_number = 0
+    for line in combined_raw_dataset:
+        position_eval = line.split(",")
+        if 'w' == position_eval[0].split()[1]:
+            normalized_evaluation = 1 if "#" in position_eval[1] else 2 * (1 / (1 + math.exp(-float(position_eval[1])/300)) - 0.5) # normalizes centipawn score with sigmoid function
+            position_eval[0] = position_eval[0] + (input_length - len(position_eval[0])) * " " # Add padding on FEN
+            position_array = np.asarray([i.split(" ") for i in str(chess.Board(position_eval[0])).split("\n")])
+            position_array_int = np.zeros((8, 8, 12))
+            for i in range(0, len(position_array)):
+                for j in range(0, len(position_array[i])):
+                    position_array_int[i][j] = piece_char_2_int[position_array[i][j]]
 
-                print(line_number)
-                # print(position_eval)
-                # print(chess.Board(position_eval[0]).unicode())
-                # print(chess.Board(position_eval[0]))
-                # print(position_array_int)
-                # print("CentiPawn Score:", position_eval[1])
-                # print("Normalized Evaluation:", normalized_evaluation)
-                # print("Color:", color)
+            print(line_number)
+            # print(position_eval)
+            # print(chess.Board(position_eval[0]).unicode())
+            # print(chess.Board(position_eval[0]))
+            # print(position_array_int)
+            # print("CentiPawn Score:", position_eval[1])
+            # print("Normalized Evaluation:", normalized_evaluation)
+            # print("Color:", color)
+            positions[line_number] = position_array_int
+            evaluations[line_number] = normalized_evaluation
 
-                positions.append(position_array_int)
-                evaluations.append(normalized_evaluation)
-                # colors.append(color)
 
-                line_number += 1
-                if line_number == 100000:
-                    break
-    except:
-        print("\n\nStopping data conversion")
+            line_number += 1
+            if line_number == wanted_dataset_size:
+                break
 
 if "yes" in input("\n\nWould you like to save (yes or no)"):
     save_name = input("\nSave as:")

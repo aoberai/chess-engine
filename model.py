@@ -3,24 +3,6 @@ import datetime
 import numpy as np
 import tensorflow as tf
 
-piece_char_2_int = {
-        'p' : (1,0,0,0,0,0,0,0,0,0,0,0),
-        'P' : (0,0,0,0,0,0,1,0,0,0,0,0),
-        'n' : (0,1,0,0,0,0,0,0,0,0,0,0),
-        'N' : (0,0,0,0,0,0,0,1,0,0,0,0),
-        'b' : (0,0,1,0,0,0,0,0,0,0,0,0),
-        'B' : (0,0,0,0,0,0,0,0,1,0,0,0),
-        'r' : (0,0,0,1,0,0,0,0,0,0,0,0),
-        'R' : (0,0,0,0,0,0,0,0,0,1,0,0),
-        'q' : (0,0,0,0,1,0,0,0,0,0,0,0),
-        'Q' : (0,0,0,0,0,0,0,0,0,0,1,0),
-        'k' : (0,0,0,0,0,1,0,0,0,0,0,0),
-        'K' : (0,0,0,0,0,0,0,0,0,0,0,1),
-        '.' : (0,0,0,0,0,0,0,0,0,0,0,0),
-}
-
-
-int_2_piece_char = {v: k for k, v in piece_char_2_int.items()}
 
 
 input_shape = (8, 8, 12) # Board Dimensions are 8 x 8
@@ -66,6 +48,10 @@ output_nodes = 1 # output is singular number from -1 to 1 evaluating position
 strategy = tf.distribute.MirroredStrategy()
 print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
 
+# Supposed to speed up training by doing "Mixed Precision Training"
+policy = tf.keras.mixed_precision.experimental.Policy('mixed_float16')
+tf.keras.mixed_precision.experimental.set_policy(policy)
+
 ''' Custom Model '''
 
 with strategy.scope():
@@ -91,11 +77,14 @@ with strategy.scope():
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=3e-4), loss='mean_squared_error', metrics=['MSE'])
 
 # memmap the file
-evaluations_train_memmap = np.load('evaluations_2.25M.npy', mmap_mode='r')
-positions_train_memmap = np.load('positions_2.25M.npy', mmap_mode='r')
+evaluations_train_memmap = np.load('evaluations_3M.npy', mmap_mode='r')
+positions_train_memmap = np.load('positions_3M.npy', mmap_mode='r')
 
 # evaluations_val_memmap = np.load('evaluations_val100K.npy', mmap_mode='r')
 # positions_val_memmap = np.load('positions_val100K.npy', mmap_mode='r')
+
+assert len(evaluations_train_memmap) == len(positions_train_memmap)
+
 
 
 training_data_seen_indexes = []
@@ -127,6 +116,7 @@ def training_data_generator():
 
 total_dataset = tf.data.Dataset.from_generator(
         generator=training_data_generator, output_signature=(tf.TensorSpec(shape=input_shape, dtype=np.int32), tf.TensorSpec(shape=(), dtype=np.float32)))
+total_dataset.cache()
 
 # val_dataset = tf.data.Dataset.from_generator(
         # generator=validation_data_generator, output_signature=(tf.TensorSpec(shape=input_shape, dtype=np.int32), tf.TensorSpec(shape=(), dtype=np.float32)))
@@ -134,10 +124,10 @@ total_dataset = tf.data.Dataset.from_generator(
 log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
-total_dataset = total_dataset.shuffle(2000000)
-
-val_dataset = total_dataset.take(5000).batch(64).prefetch(64)
-train_dataset = total_dataset.skip(5000).batch(64).prefetch(64)
+# total_dataset = total_dataset.shuffle(2000000)
+validation_set_size = 10000
+val_dataset = total_dataset.take(validation_set_size).batch(64).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+train_dataset = total_dataset.skip(validation_set_size).batch(64).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
 # val_dataset = val_dataset.shuffle(100000).batch(64).prefetch(64)
 
@@ -152,5 +142,5 @@ val_dataset = val_dataset.with_options(options)
 model.fit(train_dataset, validation_data=val_dataset, epochs=100, callbacks=[early_stopping_callback, tensorboard_callback], use_multiprocessing=True, workers=8)
 
 
-model.save("chess_engine_v6.h5")
+model.save("chess_engine_v4.h5")
 
