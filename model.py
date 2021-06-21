@@ -73,7 +73,7 @@ with strategy.scope():
 
     model.summary()
     tf.keras.utils.plot_model(model, to_file="assets/model.png", show_shapes=True)
-    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=3e-4), loss='mean_squared_error', metrics=['MSE'])
+    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4), loss='mean_squared_error', metrics=['MSE'])
 
 # memmap the file
 evaluations_train_memmap = np.load('evaluations_3M.npy', mmap_mode='r')
@@ -124,7 +124,7 @@ log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
 # total_dataset = total_dataset.shuffle(2000000)
-validation_set_size = 10000
+validation_set_size = 100000
 val_dataset = total_dataset.take(validation_set_size).batch(64).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 train_dataset = total_dataset.skip(validation_set_size).batch(64).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 

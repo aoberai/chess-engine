@@ -92,7 +92,7 @@ def undo_move():
 
 
 
-model = tf.keras.models.load_model("chess_engine_v40.8MSE24Epch.h5")
+model = tf.keras.models.load_model("chess_engine_v4.h5")
 
 def computer_move(turn=chess.WHITE):
     if not board.is_checkmate():
@@ -101,7 +101,7 @@ def computer_move(turn=chess.WHITE):
         for alg_move in legal_moves:
             board_copy = chess.Board(board.fen())
             board_copy.push_san(alg_move)
-            evaluation_score = minimax(board_copy.fen(), depth=3, last_move=alg_move)
+            evaluation_score = minimax(board_copy.fen(), depth=2, last_move=alg_move)
 
             move_eval_scores[alg_move] = evaluation_score
         sorted_move_eval_scores = sorted(move_eval_scores.items(), key=lambda x: x[1], reverse=True)
