@@ -1,50 +1,85 @@
-import random, threading, webbrowser
+import math
+import threading, webbrowser
 import numpy as np
-import copy
 import chess
 import tensorflow as tf
 import time
 import chess.svg
-from flask import Flask, Markup, render_template, request
+import chess.engine
+from flask import Flask, request
 import base64
 
 board = chess.Board()
+engine = chess.engine.SimpleEngine.popen_uci("/home/aoberai/programming/python/chess-engine/stockfish")
 
-piece_char_2_int = {
-       'p' : [1,0,0,0,0,0,0,0,0,0,0,0],
-       'P' : [0,0,0,0,0,0,1,0,0,0,0,0],
-       'n' : [0,1,0,0,0,0,0,0,0,0,0,0],
-       'N' : [0,0,0,0,0,0,0,1,0,0,0,0],
-       'b' : [0,0,1,0,0,0,0,0,0,0,0,0],
-       'B' : [0,0,0,0,0,0,0,0,1,0,0,0],
-       'r' : [0,0,0,1,0,0,0,0,0,0,0,0],
-       'R' : [0,0,0,0,0,0,0,0,0,1,0,0],
-       'q' : [0,0,0,0,1,0,0,0,0,0,0,0],
-       'Q' : [0,0,0,0,0,0,0,0,0,0,1,0],
-       'k' : [0,0,0,0,0,1,0,0,0,0,0,0],
-       'K' : [0,0,0,0,0,0,0,0,0,0,0,1],
-       '.' : [0,0,0,0,0,0,0,0,0,0,0,0],
-}
-
-selfplay = False 
+selfplay = True
 
 app = Flask(__name__)
 @app.route("/")
 def update_site():
-    # if request.form['Undo'] == 'Undo':
-    #         board.pop(); board.pop()
-    #
-
     board_svg = base64.b64encode(chess.svg.board(board, flipped=True).encode('utf-8')).decode('utf-8')
     ret = '<html><head>'
     ret += '<style>input { font-size: 30px; } button { font-size: 30px; }</style>'
     ret += '</head><body>'
+
+    ret += '<p style="font-size:30px">'
+
+    ret += '<img width=60 height=60 src="data:image/svg+xml;base64,%s"></img>' % base64.b64encode(chess.svg.piece(chess.Piece.from_symbol("R")).encode('utf-8')).decode('utf-8')
+
+    ret += str(str(board).count("R")) + "   "
+
+    ret += '<img width=60 height=60 src="data:image/svg+xml;base64,%s"></img>' % base64.b64encode(chess.svg.piece(chess.Piece.from_symbol("N")).encode('utf-8')).decode('utf-8')
+
+    ret += str(str(board).count("N")) + "   "
+
+    ret += '<img width=60 height=60 src="data:image/svg+xml;base64,%s"></img>' % base64.b64encode(chess.svg.piece(chess.Piece.from_symbol("B")).encode('utf-8')).decode('utf-8')
+
+    ret += str(str(board).count("B")) + "   "
+
+    ret += '<img width=60 height=60 src="data:image/svg+xml;base64,%s"></img>' % base64.b64encode(chess.svg.piece(chess.Piece.from_symbol("Q")).encode('utf-8')).decode('utf-8')
+
+    ret += str(str(board).count("Q")) + "   "
+
+    ret += '<img width=60 height=60 src="data:image/svg+xml;base64,%s"></img>' % base64.b64encode(chess.svg.piece(chess.Piece.from_symbol("P")).encode('utf-8')).decode('utf-8')
+
+    ret += str(str(board).count("P")) + "<br>"
+
     ret += '<img width=750 height=750 src="data:image/svg+xml;base64,%s"></img><br/>' % board_svg
+
+    ret += '<img width=60 height=60 src="data:image/svg+xml;base64,%s"></img>' % base64.b64encode(chess.svg.piece(chess.Piece.from_symbol("r")).encode('utf-8')).decode('utf-8')
+
+    ret += str(str(board).count("r")) + "   "
+
+    ret += '<img width=60 height=60 src="data:image/svg+xml;base64,%s"></img>' % base64.b64encode(chess.svg.piece(chess.Piece.from_symbol("n")).encode('utf-8')).decode('utf-8')
+
+    ret += str(str(board).count("n")) + "   "
+
+    ret += '<img width=60 height=60 src="data:image/svg+xml;base64,%s"></img>' % base64.b64encode(chess.svg.piece(chess.Piece.from_symbol("b")).encode('utf-8')).decode('utf-8')
+
+    ret += str(str(board).count("b")) + "   "
+
+    ret += '<img width=60 height=60 src="data:image/svg+xml;base64,%s"></img>' % base64.b64encode(chess.svg.piece(chess.Piece.from_symbol("q")).encode('utf-8')).decode('utf-8')
+
+    ret += str(str(board).count("q")) + "   "
+
+    ret += '<img width=60 height=60 src="data:image/svg+xml;base64,%s"></img>' % base64.b64encode(chess.svg.piece(chess.Piece.from_symbol("p")).encode('utf-8')).decode('utf-8')
+
+    ret += str(str(board).count("p")) + '</p>'
+
+
     if board.is_checkmate():
         ret += '<br> <big><big><big><big><big>CheckMate!</big></big></big></big></big>'
-    ret += '<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><form action="/move"><input name="Move" type="text" autofocus="autofocus"></input><input type="submit" value="Move"></form> <br><br><form action="/undo"><input type="submit" name="Undo" value="Undo"><br/>'
-
+    ret += '<br><br><br><br><form action="/move"><input name="Move" type="text" autofocus="autofocus"></input><input type="submit" value="Move"></form> <br><br><form action="/undo"><input type="submit" name="Undo" value="Undo"><br/>'
     ret += '<br> <big><big><big>Position Evaluation for White: %0.4f</big></big></big>' % model.predict(serialize_position(board))
+
+    try:
+        ret += '<br> <big><big><big>Stockfish Evaluation for White: %0.4f</big></big></big>' % engine.analyse(board, chess.engine.Limit(time=0.4))["score"].white().score() # normalizes centipawn score with sigmoid function
+    except Exception as e:
+        print("Stockfish Evaluation Not Working")
+    try:
+        ret += '<br> <big><big><big>Stockfish Recommended Move: %s </big></big></big>' % engine.play(board, chess.engine.Limit(time=0.4)).move
+    except Exception as e:
+        print("Stockfish Best Move Not Working")
     return ret
 
 @app.route("/move")
@@ -101,7 +136,7 @@ def computer_move(turn=chess.WHITE):
         for alg_move in legal_moves:
             board_copy = chess.Board(board.fen())
             board_copy.push_san(alg_move)
-            evaluation_score = minimax(board_copy.fen(), depth=2, last_move=alg_move)
+            evaluation_score = minimax(board_copy.fen(), depth=3, last_move=alg_move)
 
             move_eval_scores[alg_move] = evaluation_score
         sorted_move_eval_scores = sorted(move_eval_scores.items(), key=lambda x: x[1], reverse=True)
@@ -127,6 +162,21 @@ def position_evaluation(fen, color=chess.WHITE): # TODO: Might need to make this
 
 
 def serialize_position(board):
+    piece_char_2_int = {
+           'p' : [1,0,0,0,0,0,0,0,0,0,0,0],
+           'P' : [0,0,0,0,0,0,1,0,0,0,0,0],
+           'n' : [0,1,0,0,0,0,0,0,0,0,0,0],
+           'N' : [0,0,0,0,0,0,0,1,0,0,0,0],
+           'b' : [0,0,1,0,0,0,0,0,0,0,0,0],
+           'B' : [0,0,0,0,0,0,0,0,1,0,0,0],
+           'r' : [0,0,0,1,0,0,0,0,0,0,0,0],
+           'R' : [0,0,0,0,0,0,0,0,0,1,0,0],
+           'q' : [0,0,0,0,1,0,0,0,0,0,0,0],
+           'Q' : [0,0,0,0,0,0,0,0,0,0,1,0],
+           'k' : [0,0,0,0,0,1,0,0,0,0,0,0],
+           'K' : [0,0,0,0,0,0,0,0,0,0,0,1],
+           '.' : [0,0,0,0,0,0,0,0,0,0,0,0],
+    }
     letter_position = np.asarray([i.split(" ") for i in str(board).split("\n")]) # gives position using [r, R, k, K, b, B, q, Q, k, K, p, P, .] notation
     one_hot_board = np.zeros((8, 8, 12))
     for i in range(0, len(letter_position)):
