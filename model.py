@@ -5,7 +5,7 @@ import tensorflow as tf
 
 
 
-input_shape = (8, 8, 12) # Board Dimensions are 8 x 8
+input_shape = (8, 8, 6) # Board Dimensions are 8 x 8
 output_nodes = 1 # output is singular number from -1 to 1 evaluating position
 
 ''' VGG '''
@@ -59,16 +59,16 @@ with strategy.scope():
     input_position_conv2 = tf.keras.layers.Conv2D(16, (7, 7), padding="same", activation='relu')(input_position_conv)
     input_position_conv3 = tf.keras.layers.Conv2D(16, (5, 5), padding="same", activation='relu')(input_position_conv2)
     input_position_conv4 = tf.keras.layers.Conv2D(16, (5, 5), padding="same", activation='relu')(input_position_conv3)
-    input_position_conv5 = tf.keras.layers.Conv2D(32, (3, 3), strides=2, activation='sigmoid')(input_position_conv4)
-    input_position_conv6 = tf.keras.layers.Conv2D(32, (3, 3), padding="same", activation='sigmoid')(input_position_conv5)
-    input_position_conv7 = tf.keras.layers.Conv2D(64, (3, 3), padding="same", activation='sigmoid')(input_position_conv6)
+    input_position_conv5 = tf.keras.layers.Conv2D(32, (3, 3), strides=2, activation='relu')(input_position_conv4)
+    input_position_conv6 = tf.keras.layers.Conv2D(32, (3, 3), padding="same", activation='relu')(input_position_conv5)
+    input_position_conv7 = tf.keras.layers.Conv2D(64, (3, 3), padding="same", activation='relu')(input_position_conv6)
     input_position_conv8 = tf.keras.layers.Conv2D(128, (3, 3), padding="same", activation='relu')(input_position_conv7)
-    input_position_conv9 = tf.keras.layers.Conv2D(512, (3, 3), padding="same", activation='relu')(input_position_conv8)
-    input_position_conv_final = tf.keras.layers.Conv2D(512, (3, 3), activation='relu')(input_position_conv9)
+    input_position_conv9 = tf.keras.layers.Conv2D(128, (2, 2), padding="same", activation='relu')(input_position_conv8)
+    input_position_conv_final = tf.keras.layers.Conv2D(128, (2, 2), activation='relu')(input_position_conv9)
     # input_position_conv8 = tf.keras.layers.Conv2D(512, (1, 1), activation='sigmoid')(input_position_conv7)
     flattened_input_position = tf.keras.layers.Flatten()(input_position_conv_final)
-    second_hidden_dense = tf.keras.layers.Dense(units=32, activation='relu')(flattened_input_position)
-    output_dense = tf.keras.layers.Dense(units=output_nodes, activation='tanh')(second_hidden_dense)
+    # second_hidden_dense = tf.keras.layers.Dense(units=128, activation='relu')(flattened_input_position)
+    output_dense = tf.keras.layers.Dense(units=output_nodes, activation='tanh')(flattened_input_position)
     model = tf.keras.Model(inputs=input_position, outputs=output_dense)
 
     model.summary()
@@ -91,12 +91,6 @@ def training_data_generator():
     for i in range(0, len(positions_train_memmap)):
         yield (positions_train_memmap[i], evaluations_train_memmap[i])
         # return (iter(positions_train_memmap), iter(evaluations_train_memmap))
-
-# def validation_data_generator():
-#     for i in range(0, len(positions_val_memmap)):
-#         yield (positions_val_memmap[i], evaluations_val_memmap[i])
-#         # return (iter(positions_val_memmap), iter(evaluations_val_memmap))
-#
 
 ''' Shows generator working '''
 # print("Running generator")
@@ -125,10 +119,10 @@ tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram
 
 # total_dataset = total_dataset.shuffle(2000000)
 validation_set_size = 100000
-val_dataset = total_dataset.take(validation_set_size).batch(64).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-train_dataset = total_dataset.skip(validation_set_size).batch(64).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+batch_size = 256
+val_dataset = total_dataset.take(validation_set_size).batch(batch_size).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+train_dataset = total_dataset.skip(validation_set_size).batch(batch_size).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
-# val_dataset = val_dataset.shuffle(100000).batch(64).prefetch(64)
 
 early_stopping_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', restore_best_weights=True, patience=6)
 
@@ -141,5 +135,5 @@ val_dataset = val_dataset.with_options(options)
 model.fit(train_dataset, validation_data=val_dataset, epochs=100, callbacks=[early_stopping_callback, tensorboard_callback], use_multiprocessing=True, workers=8)
 
 
-model.save("chess_engine_v4.h5")
+model.save("chess_engine_vlatest.h5")
 
