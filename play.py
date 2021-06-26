@@ -12,7 +12,7 @@ import base64
 board = chess.Board()
 engine = chess.engine.SimpleEngine.popen_uci("/home/aoberai/programming/python/chess-engine/stockfish")
 
-selfplay = True
+selfplay = False 
 
 app = Flask(__name__)
 @app.route("/")
@@ -127,7 +127,8 @@ def undo_move():
 
 
 
-model = tf.keras.models.load_model("chess_engine_v4.h5")
+# model = tf.keras.models.load_model("chess_engine_v4.h5") # best
+model = tf.keras.models.load_model("chess_engine_vlatest.h5")
 
 def computer_move(turn=chess.WHITE):
     if not board.is_checkmate():
@@ -163,22 +164,22 @@ def position_evaluation(fen, color=chess.WHITE): # TODO: Might need to make this
 
 def serialize_position(board):
     piece_char_2_int = {
-           'p' : [1,0,0,0,0,0,0,0,0,0,0,0],
-           'P' : [0,0,0,0,0,0,1,0,0,0,0,0],
-           'n' : [0,1,0,0,0,0,0,0,0,0,0,0],
-           'N' : [0,0,0,0,0,0,0,1,0,0,0,0],
-           'b' : [0,0,1,0,0,0,0,0,0,0,0,0],
-           'B' : [0,0,0,0,0,0,0,0,1,0,0,0],
-           'r' : [0,0,0,1,0,0,0,0,0,0,0,0],
-           'R' : [0,0,0,0,0,0,0,0,0,1,0,0],
-           'q' : [0,0,0,0,1,0,0,0,0,0,0,0],
-           'Q' : [0,0,0,0,0,0,0,0,0,0,1,0],
-           'k' : [0,0,0,0,0,1,0,0,0,0,0,0],
-           'K' : [0,0,0,0,0,0,0,0,0,0,0,1],
-           '.' : [0,0,0,0,0,0,0,0,0,0,0,0],
+            'p' : [1,0,0,0,0,0],
+            'P' : [-1,0,0,0,0,0],
+            'n' : [0,1,0,0,0,0],
+            'N' : [0,-1,0,0,0,0],
+            'b' : [0,0,1,0,0,0],
+            'B' : [0,0,-1,0,0,0],
+            'r' : [0,0,0,1,0,0],
+            'R' : [0,0,0,-1,0,0],
+            'q' : [0,0,0,0,1,0],
+            'Q' : [0,0,0,0,-1,0],
+            'k' : [0,0,0,0,0,1],
+            'K' : [0,0,0,0,0,-1],
+            '.' : [0,0,0,0,0,0],
     }
     letter_position = np.asarray([i.split(" ") for i in str(board).split("\n")]) # gives position using [r, R, k, K, b, B, q, Q, k, K, p, P, .] notation
-    one_hot_board = np.zeros((8, 8, 12))
+    one_hot_board = np.zeros((8, 8, 6))
     for i in range(0, len(letter_position)):
         for j in range(0, len(letter_position[i])):
             one_hot_board[i][j] = piece_char_2_int[letter_position[i][j]]

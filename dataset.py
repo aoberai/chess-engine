@@ -16,7 +16,7 @@ piece_char_2_int = {
         'q' : [0,0,0,0,1,0],
         'Q' : [0,0,0,0,-1,0],
         'k' : [0,0,0,0,0,1],
-        'k' : [0,0,0,0,0,-1],
+        'K' : [0,0,0,0,0,-1],
         '.' : [0,0,0,0,0,0],
 }
 
@@ -36,7 +36,7 @@ with open("data/chessData.csv") as file1, open("data/random_evals.csv") as file2
         position_eval = line.split(",")
         if 'w' == position_eval[0].split()[1]:
             normalized_evaluation = 1 if "#" in position_eval[1] else 2 * (1 / (1 + math.exp(-float(position_eval[1])/300)) - 0.5) # normalizes centipawn score with sigmoid function
-            position_eval[0] = position_eval[0] + (input_length - len(position_eval[0])) * " " # Add padding on FEN
+            # position_eval[0] = position_eval[0] + (input_length - len(position_eval[0])) * " " # Add padding on FEN
             position_array = np.asarray([i.split(" ") for i in str(chess.Board(position_eval[0])).split("\n")])
             position_array_int = np.zeros((8, 8, 6))
             for i in range(0, len(position_array)):
