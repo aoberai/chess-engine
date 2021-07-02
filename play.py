@@ -77,7 +77,7 @@ def update_site():
     except Exception as e:
         print("Stockfish Evaluation Not Working")
     try:
-        ret += '<br> <big><big><big>Stockfish Recommended Move: %s </big></big></big>' % engine.play(board, chess.engine.Limit(time=0.4)).move
+        ret += '<br> <big><big><big>Stockfish Recommended Move: %s </big></big></big>' % engine.play(board, chess.engine.Limit(time=0.1)).move
     except Exception as e:
         print("Stockfish Best Move Not Working")
     return ret
@@ -137,7 +137,7 @@ def computer_move(turn=chess.WHITE):
         for alg_move in legal_moves:
             board_copy = chess.Board(board.fen())
             board_copy.push_san(alg_move)
-            evaluation_score = minimax(board_copy.fen(), depth=3, last_move=alg_move)
+            evaluation_score = minimax(board_copy.fen(), depth=0, last_move=alg_move)
 
             move_eval_scores[alg_move] = evaluation_score
         sorted_move_eval_scores = sorted(move_eval_scores.items(), key=lambda x: x[1], reverse=True)
@@ -189,25 +189,25 @@ def minimax(fen, depth, last_move, maximizing_player_color=chess.WHITE): # depth
     # Establish Search Tree
     board = chess.Board(fen)
     if depth == 0 or board.is_game_over(claim_draw=True):
-        position_evaluation_score = float(position_evaluation(fen))
+        position_evaluation_score = float(position_evaluation(fen)) # play against custom trained model
+        # position_evaluation_score = engine.analyse(board, chess.engine.Limit(time=0.05))["score"].white().score() # play against stockfish
         print(board.unicode())
         print(position_evaluation_score)
         print("Move Number: ", board.fullmove_number)
         print("Last Move: ", last_move)
+        return position_evaluation_score
 
-        return position_evaluation_score # TODO: make this work for both black and white
-
-    threshold_evaluation = -1 if board.turn == maximizing_player_color else 1 # used as a threshold to find max eval if search node on maximizing_player_color or min eval for oppositve player if search node not on maximizing_player_color
-    print(threshold_evaluation)
+    threshold_evaluation = -1000000000 if board.turn == maximizing_player_color else 1000000000 # used as a threshold to find max eval if search node on maximizing_player_color or min eval for oppositve player if search node not on maximizing_player_color
     # if depth == 2:
         # print(board.peek())
     legal_moves = [board.san(move) for move in list(board.legal_moves)]
+    maxmin_evaluation = 0
     for move in legal_moves:
         next_board = chess.Board(fen)
         next_board.push_san(move)
-        evaluation = minimax(next_board.fen(), depth - 1, move, next_board.turn)
+        evaluation = minimax(next_board.fen(), depth - 1, move)
         maxmin_evaluation = max(threshold_evaluation, evaluation) if board.turn == maximizing_player_color else min(threshold_evaluation, evaluation)
-        return maxmin_evaluation
+    return maxmin_evaluation
 
 
 if __name__ == "__main__":
