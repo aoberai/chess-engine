@@ -14,7 +14,7 @@ board = chess.Board()
 engine = chess.engine.SimpleEngine.popen_uci(
     "/home/aoberai/programming/python/chess-engine/stockfish")
 infinity = 1000000000
-selfplay = False
+selfplay = True
 
 app = Flask(__name__)
 
@@ -182,8 +182,7 @@ def computer_move(turn=chess.WHITE):
         else:
             # If black, make the move to minimize white position score
             board.push_san(sorted_move_eval_scores[-1][0])
-        print("\nComputer making move: %s with evaluation score %0.3f\n" %
-              (sorted_move_eval_scores[0][0], sorted_move_eval_scores[0][1]))
+        print("\nComputer making move: %s" % board.peek())
     else:
         print("\n\n\n Checkmate! \n\n\n")
 
@@ -229,8 +228,7 @@ def minimax(fen, depth, last_move, alpha, beta, maximizing_player_color=chess.WH
         # play against custom trained model
         position_evaluation_score = float(position_evaluation(fen))
         # position_evaluation_score = engine.analyse(board,
-        # chess.engine.Limit(time=0.05))["score"].white().score() # play
-        # against stockfish
+        # chess.engine.Limit(time=0.05))["score"].white().score() # play against stockfish
         print(board.unicode())
         print(position_evaluation_score)
         print("Move Number: ", board.fullmove_number)

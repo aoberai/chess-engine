@@ -1,20 +1,19 @@
-# Chess Engine - In Progress
-Objective: Create neural network which can evaluate a position from -1 to 1. Whichever legal move that maximizes the evaluation score is the move the chess engine should play. Currently working on implementing minimax and alpha beta pruning afterwards for more than 1 ply
+# Chess Engine
+
+Objective: Create neural network which can evaluate a position from -1 to 1. Since this neural network will only be 1-ply, uses minimax to look forward in the position search tree to see which move forces the best evaluation x moves ahead of the current position; alpha beta pruning is used to prune the search tree. 
 
 ## UI
 
-![UI](./assets/UI.png)
+![UI](./assets/GUI.png)
 
-## Current Model Architecture:
+## Model Architecture:
 
 ![Model](./assets/model.png)
 
-TODO:
+## Documentation
 
-Minimax and Alpha Beta pruning Search Tree
+Finish this
 
-Improve NN architecture
+## Improvements
 
-Incremental dumping to npy
-
-http://www.diva-portal.se/smash/get/diva2:1366229/FULLTEXT01.pdf
+Model architecture has lots of potential to improve, it just takes a lot of compute and time to train which prevents better tuning of the hyper parameters. My custom model works most of the time but in certain cases will devalue certain obviously good capture of pieces.The lookahead capability also seems to affect the "playing principles" of the engine such as how pieces are conventionally developed. The lookahead capability with minimax is required since the model is not yet good enough to see 2-ply on it's own.
