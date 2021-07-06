@@ -167,7 +167,11 @@ def computer_move(turn=chess.WHITE):
             board_copy = chess.Board(board.fen())
             board_copy.push_san(alg_move)
             evaluation_score = minimax(
-                board_copy.fen(), depth=2, alpha=-infinity, beta=infinity, last_move=alg_move)
+                board_copy.fen(),
+                depth=2,
+                alpha=-infinity,
+                beta=infinity,
+                last_move=alg_move)
 
             move_eval_scores[alg_move] = evaluation_score
         sorted_move_eval_scores = sorted(
@@ -228,7 +232,8 @@ def minimax(fen, depth, last_move, alpha, beta, maximizing_player_color=chess.WH
         # play against custom trained model
         position_evaluation_score = float(position_evaluation(fen))
         # position_evaluation_score = engine.analyse(board,
-        # chess.engine.Limit(time=0.05))["score"].white().score() # play against stockfish
+        # chess.engine.Limit(time=0.05))["score"].white().score() # play
+        # against stockfish
         print(board.unicode())
         print(position_evaluation_score)
         print("Move Number: ", board.fullmove_number)

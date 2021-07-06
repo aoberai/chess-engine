@@ -6,19 +6,19 @@ import tensorflow as tf
 model = tf.keras.models.load_model("chess_engine_v2.h5")
 
 piece_char_2_int = {
-       'p' : [1,0,0,0,0,0,0,0,0,0,0,0],
-       'P' : [0,0,0,0,0,0,1,0,0,0,0,0],
-       'n' : [0,1,0,0,0,0,0,0,0,0,0,0],
-       'N' : [0,0,0,0,0,0,0,1,0,0,0,0],
-       'b' : [0,0,1,0,0,0,0,0,0,0,0,0],
-       'B' : [0,0,0,0,0,0,0,0,1,0,0,0],
-       'r' : [0,0,0,1,0,0,0,0,0,0,0,0],
-       'R' : [0,0,0,0,0,0,0,0,0,1,0,0],
-       'q' : [0,0,0,0,1,0,0,0,0,0,0,0],
-       'Q' : [0,0,0,0,0,0,0,0,0,0,1,0],
-       'k' : [0,0,0,0,0,1,0,0,0,0,0,0],
-       'K' : [0,0,0,0,0,0,0,0,0,0,0,1],
-       '.' : [0,0,0,0,0,0,0,0,0,0,0,0],
+    'p': [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    'P': [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    'n': [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    'N': [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+    'b': [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    'B': [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+    'r': [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+    'R': [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+    'q': [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    'Q': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+    'k': [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+    'K': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    '.': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 }
 
 
@@ -28,9 +28,10 @@ def position_evaluation(fen):
     evaluation_score = model.predict(one_hot_board)[0][0]
     return evaluation_score
 
-#recursive search of all available moves from given point
+# recursive search of all available moves from given point
 
-def minimax(fen, depth, maximizing_player_color=chess.WHITE): # depth represents ply
+
+def minimax(fen, depth, maximizing_player_color=chess.WHITE):  # depth represents ply
     # Establish Search Tree
 
     board = chess.Board(fen)
@@ -57,19 +58,19 @@ def minimax(fen, depth, maximizing_player_color=chess.WHITE): # depth represents
             min_evaluation = min(min_evaluation, evaluation)
         return min_evaluation
 
+
 def serialize_position(board):
-    letter_position = np.asarray([i.split(" ") for i in str(board).split("\n")]) # gives position using [r, R, k, K, b, B, q, Q, k, K, p, P, .] notation
+    # gives position using [r, R, k, K, b, B, q, Q, k, K, p, P, .] notation
+    letter_position = np.asarray([i.split(" ")
+                                 for i in str(board).split("\n")])
     one_hot_board = np.zeros((8, 8, 12))
     for i in range(0, len(letter_position)):
         for j in range(0, len(letter_position[i])):
             one_hot_board[i][j] = piece_char_2_int[letter_position[i][j]]
-    return np.expand_dims(one_hot_board,0)
-
-
+    return np.expand_dims(one_hot_board, 0)
 
 
 (minimax(chess.Board().fen()))
-
 
 
 #
