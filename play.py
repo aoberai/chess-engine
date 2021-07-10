@@ -11,10 +11,11 @@ from flask import Flask, request
 import base64
 
 board = chess.Board()
+# board = chess.Board('rnbqkbnr/ppp2ppp/3Q4/4P3/8/8/PPP1PPPP/RNB1KBNR b KQkq - 0 3')
 engine = chess.engine.SimpleEngine.popen_uci(
     "/home/aoberai/programming/python/chess-engine/stockfish")
 infinity = 1000000000
-selfplay = True
+# selfplay = True
 
 app = Flask(__name__)
 
@@ -102,18 +103,45 @@ def update_site():
 
 @app.route("/move")
 def update_board():
-    if not selfplay:
-
-        input_move = request.args.get("Move")
-        legal_moves = [board.san(move).lower()
-                       for move in list(board.legal_moves)]
-        print("Legal Moves: " + str([board.san(move)
-              for move in list(board.legal_moves)]))
+    legal_moves = [board.san(move).lower()
+                   for move in list(board.legal_moves)]
+    print("Legal Moves: " + str([board.san(move)
+          for move in list(board.legal_moves)]))
+    input_move = request.args.get("Move")
+    if input_move == '':
+        computer_move(turn=board.turn)
+    else:
         if legal_moves.count(input_move.lower()) == 0:
             return update_site()
         board.push_san(input_move)
 
-        computer_move(turn=chess.WHITE)
+    if board.turn == chess.BLACK:
+        legal_moves = [board.san(move) for move in list(board.legal_moves)]
+        move_eval_scores = {}
+        for alg_move in legal_moves:
+            board_copy = chess.Board(board.fen())
+            board_copy.push_san(alg_move)
+            one_ply_evaluation_score = model.predict(
+                serialize_position(board_copy))
+            move_eval_scores[alg_move] = one_ply_evaluation_score
+
+        sorted_move_eval_scores = sorted(
+            move_eval_scores.items(), key=lambda x: x[1])
+        print("1-PLY Move Recommendations")
+        print(sorted_move_eval_scores)
+
+# if not selfplay:
+    #
+    #     input_move = request.args.get("Move")
+    #     legal_moves = [board.san(move).lower()
+    #                    for move in list(board.legal_moves)]
+    #     print("Legal Moves: " + str([board.san(move)
+    #           for move in list(board.legal_moves)]))
+    #     if legal_moves.count(input_move.lower()) == 0:
+    #         return update_site()
+    #     board.push_san(input_move)
+    #
+    #     computer_move(turn=board.turn)
         '''
         Move Recommendations
         legal_moves = [board.san(move) for move in list(board.legal_moves)]
@@ -130,20 +158,9 @@ def update_board():
         print("1-PLY Move Recommendations")
         print(sorted_move_eval_scores)
         '''
-    else:
-        legal_moves = [board.san(move).lower()
-                       for move in list(board.legal_moves)]
-        print("Legal Moves: " + str([board.san(move)
-              for move in list(board.legal_moves)]))
-        input_move = request.args.get("Move")
-        if input_move == '':
-            computer_move(turn=board.turn)
-        else:
-            if legal_moves.count(input_move.lower()) == 0:
-                return update_site()
-            board.push_san(input_move)
-    return update_site()
+    # else:
 
+    return update_site()
 
 @app.route("/undo")
 def undo_move():
@@ -154,30 +171,36 @@ def undo_move():
         print("Cannot undo move")
     return update_site()
 
-
 # model = tf.keras.models.load_model("chess_engine_v4.h5") # best
 model = tf.keras.models.load_model("chess_engine_vlatest.h5")
 
-
-def computer_move(turn=chess.WHITE):
+def computer_move(turn):
     if not board.is_checkmate():
         legal_moves = [board.san(move) for move in list(board.legal_moves)]
         move_eval_scores = {}
         for alg_move in legal_moves:
             board_copy = chess.Board(board.fen())
             board_copy.push_san(alg_move)
+            # evaluation_score = minimax(
+            #     board_copy.fen(),
+            #     depth=1,
+            #     alpha=-infinity,
+            #     beta=infinity,
+            #     last_move=alg_move)
             evaluation_score = minimax(
-                board_copy.fen(),
-                depth=2,
-                alpha=-infinity,
-                beta=infinity,
-                last_move=alg_move)
+                            board_copy.fen(),
+                            depth=1,
+                            alpha=-infinity,
+                            beta=infinity,
+                            maximizing_player=False)
+
 
             move_eval_scores[alg_move] = evaluation_score
         sorted_move_eval_scores = sorted(
             move_eval_scores.items(),
             key=lambda x: x[1],
             reverse=True)
+        print("White Move Eval Scores")
         print(sorted_move_eval_scores)
         time.sleep(0.25)
         if turn == chess.WHITE:
@@ -187,17 +210,16 @@ def computer_move(turn=chess.WHITE):
             # If black, make the move to minimize white position score
             board.push_san(sorted_move_eval_scores[-1][0])
         print("\nComputer making move: %s" % board.peek())
+        print("Current FEN: ", board.fen())
+        print("Turn: ", "White" if board.turn == chess.WHITE else "Black")
     else:
         print("\n\n\n Checkmate! \n\n\n")
 
-
-# TODO: Might need to make this color dependent for minimax?
-def position_evaluation(fen, color=chess.WHITE):
+def position_evaluation(fen):
     board_copy = chess.Board(fen)
     one_hot_board = serialize_position(board_copy)
     evaluation_score = model.predict(one_hot_board)[0][0]
     return evaluation_score
-
 
 def serialize_position(board):
     piece_char_2_int = {
@@ -224,49 +246,90 @@ def serialize_position(board):
             one_hot_board[i][j] = piece_char_2_int[letter_position[i][j]]
     return np.expand_dims(one_hot_board, 0)
 
-
-def minimax(fen, depth, last_move, alpha, beta, maximizing_player_color=chess.WHITE):  # depth represents ply
+def minimax(fen, depth, alpha, beta, maximizing_player):  # depth represents ply
     # Establish Search Tree
-    board = chess.Board(fen)
-    if depth == 0 or board.is_game_over(claim_draw=True):
+    sboard = chess.Board(fen)
+    if depth == 0 or sboard.is_game_over(claim_draw=True):
         # play against custom trained model
         position_evaluation_score = float(position_evaluation(fen))
         # position_evaluation_score = engine.analyse(board,
         # chess.engine.Limit(time=0.05))["score"].white().score() # play
         # against stockfish
-        print(board.unicode())
+        print(sboard.unicode())
         print(position_evaluation_score)
-        print("Move Number: ", board.fullmove_number)
-        print("Last Move: ", last_move)
+        print("Move Number: ", sboard.fullmove_number)
         return position_evaluation_score
 
-    # used as a threshold to find max eval if search node on
-    # maximizing_player_color or min eval for oppositve player if search node
-    # not on maximizing_player_color
-    threshold_evaluation = -infinity if board.turn == maximizing_player_color else infinity
-    # if depth == 2:
-    # print(board.peek())
-    legal_moves = [board.san(move) for move in list(board.legal_moves)]
-    maxmin_evaluation = 0
-    for move in legal_moves:
-        next_board = chess.Board(fen)
-        next_board.push_san(move)
-        evaluation = minimax(next_board.fen(), depth - 1, move, alpha, beta)
-        if board.turn == maximizing_player_color:
-            maxmin_evaluation = max(threshold_evaluation, evaluation)
+    legal_moves = [sboard.san(move) for move in list(sboard.legal_moves)]
+    if maximizing_player:
+        maxEval = -infinity
+        for move in legal_moves:
+            next_board = chess.Board(fen)
+            next_board.push_san(move)
+            evaluation = minimax(next_board.fen(), depth - 1, alpha, beta, False)
+            maxEval = max(maxEval, evaluation)
             alpha = max(alpha, evaluation)
             if beta <= alpha:
                 break
-        else:
-            maxmin_evaluation = min(threshold_evaluation, evaluation)
+
+        return maxEval
+    else:
+        minEval = infinity
+        for move in legal_moves:
+            next_board = chess.Board(fen)
+            next_board.push_san(move)
+            evaluation = minimax(next_board.fen(), depth - 1, alpha, beta, True)
+            minEval = min(minEval, evaluation)
             beta = min(beta, evaluation)
             if beta <= alpha:
                 break
-    return maxmin_evaluation
+        return minEval
 
+# def minimax(fen, depth, last_move, alpha, beta, maximizing_player_color=chess.WHITE):  # depth represents ply
+#     # Establish Search Tree
+#     sboard = chess.Board(fen)
+#     if depth == 0 or sboard.is_game_over(claim_draw=True):
+#         # play against custom trained model
+#         position_evaluation_score = float(position_evaluation(fen))
+#         # position_evaluation_score = engine.analyse(board,
+#         # chess.engine.Limit(time=0.05))["score"].white().score() # play
+#         # against stockfish
+#         print(sboard.unicode())
+#         print(position_evaluation_score)
+#         print("Move Number: ", sboard.fullmove_number)
+#         print("Last Move: ", last_move)
+#         return position_evaluation_score
+#
+#     # used as a threshold to find max eval if search node on
+#     # maximizing_player_color or min eval for oppositve player if search node
+#     # not on maximizing_player_color
+#     threshold_evaluation = -infinity if sboard.turn == maximizing_player_color else infinity
+#     # if depth == 2:
+#     # print(board.peek())
+#     legal_moves = [sboard.san(move) for move in list(sboard.legal_moves)]
+#     maxmin_evaluation = 0
+#     for move in legal_moves:
+#         next_board = chess.Board(fen)
+#         next_board.push_san(move)
+#         evaluation = minimax(next_board.fen(), depth - 1, move, alpha, beta)
+#         if sboard.turn == maximizing_player_color:
+#             maxmin_evaluation = max(threshold_evaluation, evaluation)
+#             alpha = max(alpha, evaluation)
+#             if beta <= alpha:
+#                 break
+#         else:
+#             maxmin_evaluation = min(threshold_evaluation, evaluation)
+#             beta = min(beta, evaluation)
+#             if beta <= alpha:
+#                 break
+#
+#     # assert maxmin_evaluation != infinity or maxmin_evaluation != -infinity
+#     # print(maxmin_evaluation)
+#     return maxmin_evaluation
+#
 
 if __name__ == "__main__":
-    computer_move()
+    computer_move(board.turn)
     url = "http://127.0.0.1:5000"
     threading.Timer(1.25, lambda: webbrowser.open(url)).start()
     app.run()
