@@ -5,18 +5,18 @@ Objective: Create neural network which can evaluate a position from -1 to 1. Sin
 ## Instructions
 
 Create Virtual Environment:
-	Linux or Mac: python3 -m venv venv	
+	Linux or Mac: `python3 -m venv venv`	
 		
 
 Install dependencies:
-	Linux or Mac: pip3 install -r requirements.txt
+	Linux or Mac: `pip3 install -r requirements.txt`
 
 Run play.py
-	Linux or Mac: python3 play.py
+	Linux or Mac: `python3 play.py`
 
-If running on server, enter the following command to serve flask webapp to localhost:5000: 'ssh -L 5000:localhost:5000 -i server-address' 
+If running on server, enter the following command to serve flask webapp to localhost:5000: `ssh -L 5000:localhost:5000 -i server-address` 
 
-Open localhost:5000
+Open localhost:5000 (Script should do this automatically if not running on server)
 
 ## UI
 
