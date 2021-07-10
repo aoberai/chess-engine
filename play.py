@@ -130,18 +130,6 @@ def update_board():
         print("1-PLY Move Recommendations")
         print(sorted_move_eval_scores)
 
-# if not selfplay:
-    #
-    #     input_move = request.args.get("Move")
-    #     legal_moves = [board.san(move).lower()
-    #                    for move in list(board.legal_moves)]
-    #     print("Legal Moves: " + str([board.san(move)
-    #           for move in list(board.legal_moves)]))
-    #     if legal_moves.count(input_move.lower()) == 0:
-    #         return update_site()
-    #     board.push_san(input_move)
-    #
-    #     computer_move(turn=board.turn)
         '''
         Move Recommendations
         legal_moves = [board.san(move) for move in list(board.legal_moves)]
@@ -158,8 +146,6 @@ def update_board():
         print("1-PLY Move Recommendations")
         print(sorted_move_eval_scores)
         '''
-    # else:
-
     return update_site()
 
 
@@ -177,27 +163,35 @@ def undo_move():
 model = tf.keras.models.load_model("chess_engine_vlatest.h5")
 
 
+def evaluate_line(fen, move, move_eval_scores):
+    start_time = time.time()
+    board_copy = chess.Board(fen)
+    board_copy.push_san(move)
+    evaluation_score = minimax(
+        board_copy.fen(),
+        depth=2,
+        alpha=-infinity,
+        beta=infinity,
+        maximizing_player=False)
+    move_eval_scores[move] = evaluation_score
+    print("%s line finished in %d " % (move, time.time() - start_time))
+
+
 def computer_move(turn):
     if not board.is_checkmate():
+        start_time = time.time()
         legal_moves = [board.san(move) for move in list(board.legal_moves)]
         move_eval_scores = {}
+        threads = []
+        print("%d threads" % len(legal_moves))
         for alg_move in legal_moves:
-            board_copy = chess.Board(board.fen())
-            board_copy.push_san(alg_move)
-            # evaluation_score = minimax(
-            #     board_copy.fen(),
-            #     depth=1,
-            #     alpha=-infinity,
-            #     beta=infinity,
-            #     last_move=alg_move)
-            evaluation_score = minimax(
-                board_copy.fen(),
-                depth=1,
-                alpha=-infinity,
-                beta=infinity,
-                maximizing_player=False)
-
-            move_eval_scores[alg_move] = evaluation_score
+            line = threading.Thread(
+                target=evaluate_line, args=[
+                    board.fen(), alg_move, move_eval_scores])
+            line.start()
+            threads.append(line)
+        for thread in threads:
+            thread.join()
         sorted_move_eval_scores = sorted(
             move_eval_scores.items(),
             key=lambda x: x[1],
@@ -214,6 +208,7 @@ def computer_move(turn):
         print("\nComputer making move: %s" % board.peek())
         print("Current FEN: ", board.fen())
         print("Turn: ", "White" if board.turn == chess.WHITE else "Black")
+        print("Line Evaluate Time: ", time.time() - start_time)
     else:
         print("\n\n\n Checkmate! \n\n\n")
 
@@ -260,9 +255,9 @@ def minimax(fen, depth, alpha, beta, maximizing_player):  # depth represents ply
         # position_evaluation_score = engine.analyse(board,
         # chess.engine.Limit(time=0.05))["score"].white().score() # play
         # against stockfish
-        print(sboard.unicode())
-        print(position_evaluation_score)
-        print("Move Number: ", sboard.fullmove_number)
+        # print(sboard.unicode())
+        # print(position_evaluation_score)
+        # print("Move Number: ", sboard.fullmove_number)
         return position_evaluation_score
 
     legal_moves = [sboard.san(move) for move in list(sboard.legal_moves)]
