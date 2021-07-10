@@ -169,7 +169,7 @@ def evaluate_line(fen, move, move_eval_scores):
     board_copy.push_san(move)
     evaluation_score = minimax(
         board_copy.fen(),
-        depth=2,
+        depth=1,
         alpha=-infinity,
         beta=infinity,
         maximizing_player=False)
