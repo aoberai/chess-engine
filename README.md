@@ -2,6 +2,18 @@
 
 Objective: Create neural network which can evaluate a position from -1 to 1. Since this neural network will only be 1-ply, uses minimax to look forward in the position search tree to see which move forces the best evaluation x moves ahead of the current position; alpha beta pruning is used to prune the search tree. 
 
+## Instructions
+
+Install dependencies:
+	pip3 install -r requirements.txt
+
+Run play.py
+	Linux: python3 play.py
+
+If running on server, enter the following command to serve flask webapp to localhost:5000: 'ssh -L 5000:localhost:5000 -i server-address' 
+
+Open localhost:5000
+
 ## UI
 
 ![UI](./assets/GUI.png)

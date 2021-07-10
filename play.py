@@ -88,16 +88,16 @@ def update_site():
     ret += '<br> <big><big><big>Position Evaluation for White: %0.4f</big></big></big>' % model.predict(
         serialize_position(board))
 
-    try:
-        ret += '<br> <big><big><big>Stockfish Evaluation for White: %0.4f</big></big></big>' % engine.analyse(
-            board, chess.engine.Limit(time=0.4))["score"].white().score()  # normalizes centipawn score with sigmoid function
-    except Exception as e:
-        print("Stockfish Evaluation Not Working")
-    try:
-        ret += '<br> <big><big><big>Stockfish Recommended Move: %s </big></big></big>' % engine.play(
-            board, chess.engine.Limit(time=0.1)).move
-    except Exception as e:
-        print("Stockfish Best Move Not Working")
+    # try:
+    #     ret += '<br> <big><big><big>Stockfish Evaluation for White: %0.4f</big></big></big>' % engine.analyse(
+    #         board, chess.engine.Limit(time=0.4))["score"].white().score()  # normalizes centipawn score with sigmoid function
+    # except Exception as e:
+    #     print("Stockfish Evaluation Not Working")
+    # try:
+    #     ret += '<br> <big><big><big>Stockfish Recommended Move: %s </big></big></big>' % engine.play(
+    #         board, chess.engine.Limit(time=0.1)).move
+    # except Exception as e:
+    #     print("Stockfish Best Move Not Working")
     return ret
 
 
