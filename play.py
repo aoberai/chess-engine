@@ -162,6 +162,7 @@ def update_board():
 
     return update_site()
 
+
 @app.route("/undo")
 def undo_move():
     try:
@@ -171,8 +172,10 @@ def undo_move():
         print("Cannot undo move")
     return update_site()
 
+
 # model = tf.keras.models.load_model("chess_engine_v4.h5") # best
 model = tf.keras.models.load_model("chess_engine_vlatest.h5")
+
 
 def computer_move(turn):
     if not board.is_checkmate():
@@ -188,12 +191,11 @@ def computer_move(turn):
             #     beta=infinity,
             #     last_move=alg_move)
             evaluation_score = minimax(
-                            board_copy.fen(),
-                            depth=1,
-                            alpha=-infinity,
-                            beta=infinity,
-                            maximizing_player=False)
-
+                board_copy.fen(),
+                depth=1,
+                alpha=-infinity,
+                beta=infinity,
+                maximizing_player=False)
 
             move_eval_scores[alg_move] = evaluation_score
         sorted_move_eval_scores = sorted(
@@ -215,11 +217,13 @@ def computer_move(turn):
     else:
         print("\n\n\n Checkmate! \n\n\n")
 
+
 def position_evaluation(fen):
     board_copy = chess.Board(fen)
     one_hot_board = serialize_position(board_copy)
     evaluation_score = model.predict(one_hot_board)[0][0]
     return evaluation_score
+
 
 def serialize_position(board):
     piece_char_2_int = {
@@ -246,6 +250,7 @@ def serialize_position(board):
             one_hot_board[i][j] = piece_char_2_int[letter_position[i][j]]
     return np.expand_dims(one_hot_board, 0)
 
+
 def minimax(fen, depth, alpha, beta, maximizing_player):  # depth represents ply
     # Establish Search Tree
     sboard = chess.Board(fen)
@@ -266,7 +271,8 @@ def minimax(fen, depth, alpha, beta, maximizing_player):  # depth represents ply
         for move in legal_moves:
             next_board = chess.Board(fen)
             next_board.push_san(move)
-            evaluation = minimax(next_board.fen(), depth - 1, alpha, beta, False)
+            evaluation = minimax(
+                next_board.fen(), depth - 1, alpha, beta, False)
             maxEval = max(maxEval, evaluation)
             alpha = max(alpha, evaluation)
             if beta <= alpha:
@@ -278,7 +284,8 @@ def minimax(fen, depth, alpha, beta, maximizing_player):  # depth represents ply
         for move in legal_moves:
             next_board = chess.Board(fen)
             next_board.push_san(move)
-            evaluation = minimax(next_board.fen(), depth - 1, alpha, beta, True)
+            evaluation = minimax(
+                next_board.fen(), depth - 1, alpha, beta, True)
             minEval = min(minEval, evaluation)
             beta = min(beta, evaluation)
             if beta <= alpha:
@@ -327,6 +334,7 @@ def minimax(fen, depth, alpha, beta, maximizing_player):  # depth represents ply
 #     # print(maxmin_evaluation)
 #     return maxmin_evaluation
 #
+
 
 if __name__ == "__main__":
     computer_move(board.turn)
