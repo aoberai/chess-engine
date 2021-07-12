@@ -180,11 +180,14 @@ def evaluate_line(fen, move, move_eval_scores):
     move_eval_scores[move] = evaluation_score
     print("%s line finished in %d " % (move, time.time() - start_time))
 
+def optimal_move_sort_key(current_fen, amove): # Position eval after move used to reorder search tree optimally to increase number of lines pruned via alpha-beta
+    return infinity if amove.count("+") > 0 or amove.count("x") > 0 else position_evaluation(get_fen_after_move(current_fen, amove)) # force move to be evaluated if capture or check
 
 def computer_move(turn):
     if not board.is_checkmate():
         start_time = time.time()
         legal_moves = [board.san(move) for move in list(board.legal_moves)]
+        legal_moves = sorted([board.san(move) for move in list(board.legal_moves)], key=lambda amove : optimal_move_sort_key(board.fen(), amove), reverse=board.turn)[:15] # only evaluates 15 best moves
         move_eval_scores = {}
         threads = []
         print("%d threads" % len(legal_moves))
@@ -264,14 +267,10 @@ def minimax(fen, depth, alpha, beta, maximizing_player):  # depth represents ply
         # print("Move Number: ", sboard.fullmove_number)
         return position_evaluation_score
 
-    def optimal_move_sort_key(current_fen, amove): # Position eval after move used to reorder search tree optimally to increase number of lines pruned via alpha-beta
-        new_fen = get_fen_after_move(current_fen, amove)
-        return position_evaluation(new_fen)
-
     if maximizing_player:
         # legal_moves = sorted([sboard.san(move) for move in list(sboard.legal_moves)], key=lambda amove : optimal_move_sort_key(fen, amove), reverse=False)
-        # legal_moves = sorted([sboard.san(move) for move in list(sboard.legal_moves)], key=lambda amove : optimal_move_sort_key(fen, amove), reverse=True)
-        legal_moves = [sboard.san(move) for move in list(sboard.legal_moves)]
+        legal_moves = sorted([sboard.san(move) for move in list(sboard.legal_moves)], key=lambda amove : optimal_move_sort_key(fen, amove), reverse=True)[:15]
+        # legal_moves = [sboard.san(move) for move in list(sboard.legal_moves)]
         # if depth == 1: 
             # print(chess.Board(fen).unicode())
             # print(legal_moves)
@@ -280,7 +279,7 @@ def minimax(fen, depth, alpha, beta, maximizing_player):  # depth represents ply
             next_board = chess.Board(fen)
             next_board.push_san(move)
             evaluation = minimax(
-                next_board.fen(), depth - 1, alpha, beta, False)
+                next_board.fen(), depth if move.count("x") > 0 else depth - 1, alpha, beta, False) # push out extra depth search if capture
             maxEval = max(maxEval, evaluation)
             alpha = max(alpha, evaluation)
             if beta <= alpha:
@@ -289,8 +288,8 @@ def minimax(fen, depth, alpha, beta, maximizing_player):  # depth represents ply
         return maxEval
     else:
         # legal_moves = sorted([sboard.san(move) for move in list(sboard.legal_moves)], key=lambda amove : optimal_move_sort_key(fen, amove), reverse=True)
-        # legal_moves = sorted([sboard.san(move) for move in list(sboard.legal_moves)], key=lambda amove : optimal_move_sort_key(fen, amove), reverse=False)
-        legal_moves = [sboard.san(move) for move in list(sboard.legal_moves)]
+        legal_moves = sorted([sboard.san(move) for move in list(sboard.legal_moves)], key=lambda amove : optimal_move_sort_key(fen, amove), reverse=False)[:15]
+        # legal_moves = [sboard.san(move) for move in list(sboard.legal_moves)]
         # if depth == 1: 
             # print(chess.Board(fen).unicode())
             # print(legal_moves)
@@ -299,7 +298,8 @@ def minimax(fen, depth, alpha, beta, maximizing_player):  # depth represents ply
             next_board = chess.Board(fen)
             next_board.push_san(move)
             evaluation = minimax(
-                next_board.fen(), depth - 1, alpha, beta, True)
+                next_board.fen(), depth if move.count("x") > 0 else depth - 1, alpha, beta, True) # push out extra depth search if capture
+
             minEval = min(minEval, evaluation)
             beta = min(beta, evaluation)
             if beta <= alpha:

@@ -32,4 +32,8 @@ Finish this
 
 ## Improvements
 
-Model architecture has lots of potential to improve, it just takes a lot of compute and time to train which prevents better tuning of the hyper parameters. My custom model works most of the time but in certain cases will devalue certain obviously good capture of pieces.The lookahead capability also seems to affect the "playing principles" of the engine such as how pieces are conventionally developed. The lookahead capability with minimax is required since the model is not yet good enough to see further than 1 or 2 ply on it's own.
+Model Architecture can be improved, just don't have access to compute needed to test out model with variety of different hyperparameters.
+
+Try out progressive deepening + reordering of search tree to increase alpha beta pruning
+
+Make model architecture lightweight
