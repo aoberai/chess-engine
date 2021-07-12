@@ -19,6 +19,10 @@ infinity = 1000000000
 
 app = Flask(__name__)
 
+def get_fen_after_move(current_fen, move) -> str:
+    board_copy = chess.Board(current_fen)
+    board_copy.push_san(move)
+    return board_copy.fen()
 
 @app.route("/")
 def update_site():
@@ -245,7 +249,7 @@ def serialize_position(board):
             one_hot_board[i][j] = piece_char_2_int[letter_position[i][j]]
     return np.expand_dims(one_hot_board, 0)
 
-
+# TODO: beam search ranking moves via evaluation to check for pruning, also check captures first
 def minimax(fen, depth, alpha, beta, maximizing_player):  # depth represents ply
     # Establish Search Tree
     sboard = chess.Board(fen)
@@ -260,8 +264,17 @@ def minimax(fen, depth, alpha, beta, maximizing_player):  # depth represents ply
         # print("Move Number: ", sboard.fullmove_number)
         return position_evaluation_score
 
-    legal_moves = [sboard.san(move) for move in list(sboard.legal_moves)]
+    def optimal_move_sort_key(current_fen, amove): # Position eval after move used to reorder search tree optimally to increase number of lines pruned via alpha-beta
+        new_fen = get_fen_after_move(current_fen, amove)
+        return position_evaluation(new_fen)
+
     if maximizing_player:
+        # legal_moves = sorted([sboard.san(move) for move in list(sboard.legal_moves)], key=lambda amove : optimal_move_sort_key(fen, amove), reverse=False)
+        # legal_moves = sorted([sboard.san(move) for move in list(sboard.legal_moves)], key=lambda amove : optimal_move_sort_key(fen, amove), reverse=True)
+        legal_moves = [sboard.san(move) for move in list(sboard.legal_moves)]
+        # if depth == 1: 
+            # print(chess.Board(fen).unicode())
+            # print(legal_moves)
         maxEval = -infinity
         for move in legal_moves:
             next_board = chess.Board(fen)
@@ -275,6 +288,12 @@ def minimax(fen, depth, alpha, beta, maximizing_player):  # depth represents ply
 
         return maxEval
     else:
+        # legal_moves = sorted([sboard.san(move) for move in list(sboard.legal_moves)], key=lambda amove : optimal_move_sort_key(fen, amove), reverse=True)
+        # legal_moves = sorted([sboard.san(move) for move in list(sboard.legal_moves)], key=lambda amove : optimal_move_sort_key(fen, amove), reverse=False)
+        legal_moves = [sboard.san(move) for move in list(sboard.legal_moves)]
+        # if depth == 1: 
+            # print(chess.Board(fen).unicode())
+            # print(legal_moves)
         minEval = infinity
         for move in legal_moves:
             next_board = chess.Board(fen)
